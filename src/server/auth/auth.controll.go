@@ -9,11 +9,26 @@ import (
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"time"
 )
+
+func intenralServerError(c *gin.Context, err error) {
+	c.JSON(502, gin.H{"msg": "Internal Server Error"})
+	log.Print(err.Error())
+}
+
+func checkAndInsertUser(userMap map[string]interface{}) models.User {
+	user, err := database.Instance.FindUserByEmail(userMap["email"].(string))
+	if err != nil {
+		user, _ = database.Instance.RegisterUser(userMap)
+	}
+	return user
+}
 
 func CreateDiscordOauthURI() string {
 	DISCORD_CLIENT_ID := os.Getenv("DISCORD_CLIENT_ID")
@@ -38,6 +53,7 @@ func createToken(atClaims jwt.MapClaims) (string, error) {
 func CreateAccessToken(user models.User) (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
+	atClaims["d_id"] = user.DiscordId
 	atClaims["email"] = user.Email
 	atClaims["exp"] = time.Now().Add(time.Minute * 60).Unix()
 	token, err := createToken(atClaims)
@@ -47,13 +63,82 @@ func CreateAccessToken(user models.User) (string, error) {
 func CreateRefreshToken() (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
-	atClaims["exp"] = time.Now().Add(time.Hour * 24 * 30).Unix()
+	atClaims["flag"] = strconv.Itoa(rand.Int())
 	token, err := createToken(atClaims)
 	return token, err
 }
 
+func Test(c *gin.Context) {
+	c.JSON(200, gin.H{"msg": "succes"})
+}
+
 func Login(c *gin.Context) {
 	c.Redirect(http.StatusFound, CreateDiscordOauthURI())
+}
+
+func Logout(c *gin.Context) {
+	SERVER_URI := os.Getenv("SERVER_URI")
+	accessToken, err := c.Cookie("access")
+	if err != nil {
+		c.JSON(401, gin.H{"message": "Auth failed"})
+	}
+
+	c.SetCookie("refresh", "", -1, "/", SERVER_URI, false, true)
+	c.SetCookie("access", "", -1, "/", SERVER_URI, false, true)
+
+	token, _ := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(""), nil
+	})
+	claims, _ := token.Claims.(jwt.MapClaims)
+	database.Instance.DelRedis(claims["d_id"].(string))
+	c.JSON(200, gin.H{"message": "success"})
+}
+
+func Refresh(c *gin.Context) {
+	DFD_SECRET_CODE := os.Getenv("DFD_SECRET_CODE")
+	SERVER_URI := os.Getenv("SERVER_URI")
+	accessToken, err := c.Cookie("access")
+	if err != nil {
+		c.JSON(400, gin.H{"message": "no access token"})
+		return
+	}
+	refreshToken, err := c.Cookie("refresh")
+	if err != nil {
+		c.JSON(400, gin.H{"message": "no refresh token"})
+		return
+	}
+	parser := jwt.Parser{SkipClaimsValidation: true}
+	token, _ := parser.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(DFD_SECRET_CODE), nil
+	})
+	if !token.Valid {
+		c.JSON(400, gin.H{"message": "wrong access token"})
+		return
+	}
+	claims, _ := token.Claims.(jwt.MapClaims)
+	userid := claims["d_id"].(string)
+	redis_token, err := database.Instance.GetRedis(userid)
+	if redis_token != refreshToken || err != nil {
+		c.JSON(400, gin.H{"message": "wrong refresh token"})
+		return
+	}
+
+	user, err := database.Instance.FindUserByDiscordId(userid)
+
+	accessToken, err = CreateAccessToken(user)
+	if err != nil {
+		intenralServerError(c, err)
+		return
+	}
+	refreshToken, err = CreateRefreshToken()
+	if err != nil {
+		intenralServerError(c, err)
+		return
+	}
+	database.Instance.SetRedis(user.DiscordId, refreshToken)
+	c.SetCookie("access", accessToken, 0, "/", SERVER_URI, false, true)
+	c.SetCookie("refresh", refreshToken, 0, "/", SERVER_URI, false, true)
+	c.JSON(200, gin.H{"message": "success"})
 }
 
 func Redirect(c *gin.Context) {
@@ -72,10 +157,10 @@ func Redirect(c *gin.Context) {
 	tokenString, _ := ioutil.ReadAll(resp.Body)
 	var accessMap map[string]interface{}
 	if err := json.Unmarshal([]byte(tokenString), &accessMap); err != nil {
-		c.JSON(502, gin.H{"msg": "Internal Server Error"})
-		log.Fatal(err.Error())
+		intenralServerError(c, err)
 		return
 	}
+
 	bearer := "Bearer " + accessMap["access_token"].(string)
 	//Reqeust user information to discord server
 	userInfoRequest, err := http.NewRequest("GET", DISCORD_API_BASE+"/users/@me", nil)
@@ -94,31 +179,25 @@ func Redirect(c *gin.Context) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	var userMap map[string]interface{}
 	if err := json.Unmarshal([]byte(body), &userMap); err != nil {
-		c.JSON(502, gin.H{"msg": "Internal Server Error"})
-		log.Fatal(err.Error())
+		intenralServerError(c, err)
 		return
 	}
-	user, err := database.Instance.FindUserByEmail(userMap["email"].(string))
-	if err != nil {
-		//New registered User
-		userMap["tokenString"] = string(tokenString)
-		user, _ = database.Instance.RegisterUser(userMap)
-	}
+
+	userMap["tokenString"] = string(accessMap["refresh_token"].(string))
+	user := checkAndInsertUser(userMap)
 	accessToken, err := CreateAccessToken(user)
 	if err != nil {
-		c.JSON(502, gin.H{"msg": "Internal Server Error"})
-		log.Fatal(err.Error())
+		intenralServerError(c, err)
 		return
 	}
 	refreshToken, err := CreateRefreshToken()
 	if err != nil {
-		c.JSON(502, gin.H{"msg": "Internal Server Error"})
-		log.Fatal(err.Error())
+		intenralServerError(c, err)
 		return
 	}
+	database.Instance.SetRedis(user.DiscordId, refreshToken)
 	SERVER_URI := os.Getenv("SERVER_URI")
-	c.SetCookie("access", accessToken, 60*60, "/", SERVER_URI, false, true)
-	c.SetCookie("refresh", refreshToken, 60*60*24*30, "/", SERVER_URI, false, true)
-	c.JSON(200, gin.H{"access": accessToken, "refresh": refreshToken})
-
+	c.SetCookie("access", accessToken, 0, "/", SERVER_URI, false, true)
+	c.SetCookie("refresh", refreshToken, 0, "/", SERVER_URI, false, true)
+	c.Redirect(302, "/")
 }
