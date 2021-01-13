@@ -5,15 +5,54 @@ import (
 	"time"
 )
 
+type ApplicationAuth struct {
+	Id primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+}
+
 type User struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	DiscordId    string             `bson: discord_id,unique`
+	ProfileImage primitive.ObjectID `bson:"profile_image_id"`
+	DiscordId    string             `bson:"discord_id",unique`
 	Username     string             `bson:"username,omitempty"`
 	Email        string             `bson:"email,omitempty,unique"`
-	State        string             `bson:"state,omitempty"`
+	State        string             `bson:"state"`
+	LolId        string             `bson:"lol_id"`
+	LolPuuId     string             `bson:"lol_puu_id"`
+	LolAccountId string             `bson:"lol_account_id"`
+	LolUsername  string             `bson:"lol_username"`
 	RefreshToken string             `bson:"refresh,omitempty"`
-	Role         string             `bson:"role,omitempty"`
+	Role         string             `bson:"role"`
+	Created      time.Time          `bson:"created"`
+	Modified     time.Time          `bson:modified`
+}
 
-	Created  time.Time `json:"created"`
-	Modified time.Time `json:Modified`
+type Role struct {
+	Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Name        string             `bson:"name,unique"`
+	Description string             `bson:"description"`
+	Permissions []string           `bson:"permissions"`
+}
+
+type DFDLOLHistory struct {
+	Id    primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
+	Games map[string]interface{} `bson:games`
+}
+
+type DFDHistory struct {
+	Id     primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	UserId primitive.ObjectID `bson:"user_id"`
+	State  string             `bson:"state"`
+
+	Created time.Time `bson:"created"`
+}
+
+type Announce struct {
+	Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	AuthorId    primitive.ObjectID `bson:"user_id"`
+	Title       string             `bson:"state"`
+	Description string             `bson:"description"`
+	TargetDate  time.Time          `bson:"target_date"`
+
+	Created  time.Time `bson:"created"`
+	Modified time.Time `bson:modified`
 }

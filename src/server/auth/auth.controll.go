@@ -7,6 +7,7 @@ import (
 	"github.com/DevSDK/DFD/src/server/database/models"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -18,14 +19,14 @@ import (
 )
 
 func intenralServerError(c *gin.Context, err error) {
-	c.JSON(502, gin.H{"msg": "Internal Server Error"})
+	c.JSON(502, gin.H{"message": "Internal Server Error"})
 	log.Print(err.Error())
 }
 
 func checkAndInsertUser(userMap map[string]interface{}) models.User {
-	user, err := database.Instance.FindUserByEmail(userMap["email"].(string))
+	user, err := database.Instance.User.FindByEmail(userMap["email"].(string))
 	if err != nil {
-		user, _ = database.Instance.RegisterUser(userMap)
+		user, _ = database.Instance.User.Register(userMap)
 	}
 	return user
 }
@@ -53,7 +54,7 @@ func createToken(atClaims jwt.MapClaims) (string, error) {
 func CreateAccessToken(user models.User) (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
-	atClaims["d_id"] = user.DiscordId
+	atClaims["id"] = user.Id.Hex()
 	atClaims["email"] = user.Email
 	atClaims["exp"] = time.Now().Add(time.Minute * 60).Unix()
 	token, err := createToken(atClaims)
@@ -66,10 +67,6 @@ func CreateRefreshToken() (string, error) {
 	atClaims["flag"] = strconv.Itoa(rand.Int())
 	token, err := createToken(atClaims)
 	return token, err
-}
-
-func Test(c *gin.Context) {
-	c.JSON(200, gin.H{"msg": "succes"})
 }
 
 func Login(c *gin.Context) {
@@ -90,7 +87,7 @@ func Logout(c *gin.Context) {
 		return []byte(""), nil
 	})
 	claims, _ := token.Claims.(jwt.MapClaims)
-	database.Instance.DelRedis(claims["d_id"].(string))
+	database.Instance.Redis.Del(claims["id"].(string))
 	c.JSON(200, gin.H{"message": "success"})
 }
 
@@ -116,28 +113,29 @@ func Refresh(c *gin.Context) {
 		return
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
-	userid := claims["d_id"].(string)
-	redis_token, err := database.Instance.GetRedis(userid)
+	useridHex := claims["id"].(string)
+	redis_token, err := database.Instance.Redis.Get(useridHex)
 	if redis_token != refreshToken || err != nil {
 		c.JSON(400, gin.H{"message": "wrong refresh token"})
 		return
 	}
 
-	user, err := database.Instance.FindUserByDiscordId(userid)
+	userid, _ := primitive.ObjectIDFromHex(useridHex)
+	user, err := database.Instance.User.FindById(userid)
 
-	accessToken, err = CreateAccessToken(user)
+	newAccessToken, err := CreateAccessToken(user)
 	if err != nil {
 		intenralServerError(c, err)
 		return
 	}
-	refreshToken, err = CreateRefreshToken()
+	newRefreshToken, err := CreateRefreshToken()
 	if err != nil {
 		intenralServerError(c, err)
 		return
 	}
-	database.Instance.SetRedis(user.DiscordId, refreshToken)
-	c.SetCookie("access", accessToken, 0, "/", SERVER_URI, false, true)
-	c.SetCookie("refresh", refreshToken, 0, "/", SERVER_URI, false, true)
+	database.Instance.Redis.Set(user.Id.Hex(), newRefreshToken)
+	c.SetCookie("access", newAccessToken, 0, "/", SERVER_URI, false, true)
+	c.SetCookie("refresh", newRefreshToken, 0, "/", SERVER_URI, false, true)
 	c.JSON(200, gin.H{"message": "success"})
 }
 
@@ -165,14 +163,14 @@ func Redirect(c *gin.Context) {
 	//Reqeust user information to discord server
 	userInfoRequest, err := http.NewRequest("GET", DISCORD_API_BASE+"/users/@me", nil)
 	if err != nil {
-		c.JSON(502, gin.H{"msg": "Internal Server Error"})
+		c.JSON(502, gin.H{"message": "Internal Server Error"})
 		log.Print(err.Error())
 		return
 	}
 	userInfoRequest.Header.Add("Authorization", bearer)
 	resp, err = (&http.Client{}).Do(userInfoRequest)
 	if err != nil {
-		c.JSON(502, gin.H{"msg": "Discord Server Error"})
+		c.JSON(502, gin.H{"message": "Discord Server Error"})
 		log.Print(err.Error())
 		return
 	}
@@ -195,7 +193,7 @@ func Redirect(c *gin.Context) {
 		intenralServerError(c, err)
 		return
 	}
-	database.Instance.SetRedis(user.DiscordId, refreshToken)
+	database.Instance.Redis.Set(user.Id.Hex(), refreshToken)
 	SERVER_URI := os.Getenv("SERVER_URI")
 	c.SetCookie("access", accessToken, 0, "/", SERVER_URI, false, true)
 	c.SetCookie("refresh", refreshToken, 0, "/", SERVER_URI, false, true)

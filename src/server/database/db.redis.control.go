@@ -1,13 +1,15 @@
 package database
 
-func (c *DBInstance) SetRedis(key string, value string) error {
-	return c.redisClient.Set(key, value, 0).Err()
+type RedisStore struct{}
+
+func (c *RedisStore) Set(key string, value string) error {
+	return Instance.redisClient.Set(key, value, 0).Err()
 }
 
-func (c *DBInstance) GetRedis(key string) (string, error) {
-	return c.redisClient.Get(key).Result()
+func (c *RedisStore) Get(key string) (string, error) {
+	return Instance.redisClient.Get(key).Result()
 }
 
-func (c *DBInstance) DelRedis(key string) error {
-	return c.redisClient.Get(key).Err()
+func (c *RedisStore) Del(key string) error {
+	return Instance.redisClient.Get(key).Err()
 }

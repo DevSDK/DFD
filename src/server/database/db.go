@@ -17,6 +17,10 @@ type DBInstance struct {
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	database    *mongo.Database
+	User        UserDB
+	Redis       RedisStore
+	Role        RoleDB
+	Image       ImageDB
 }
 
 func timeoutContext() context.Context {
@@ -44,6 +48,13 @@ func initializeMongoDB() error {
 		timeoutContext(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "email", Value: 1}, {Key: "discord_id", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
+	Instance.database.Collection("Role").Indexes().CreateOne(
+		timeoutContext(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "name", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	)
