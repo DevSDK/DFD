@@ -15,7 +15,6 @@ type User struct {
 	DiscordId    string             `bson:"discord_id",unique`
 	Username     string             `bson:"username,omitempty"`
 	Email        string             `bson:"email,omitempty,unique"`
-	State        string             `bson:"state"`
 	LolId        string             `bson:"lol_id"`
 	LolPuuId     string             `bson:"lol_puu_id"`
 	LolAccountId string             `bson:"lol_account_id"`
@@ -33,23 +32,23 @@ type Role struct {
 	Permissions []string           `bson:"permissions"`
 }
 
-type DFDLOLHistory struct {
+type LOLHistory struct {
 	Id    primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
 	Games map[string]interface{} `bson:games`
 }
 
 type DFDHistory struct {
-	Id     primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	UserId primitive.ObjectID `bson:"user_id"`
-	State  string             `bson:"state"`
-
-	Created time.Time `bson:"created"`
+	Id      primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	UserId  primitive.ObjectID `bson:"user_id"`
+	State   string             `bson:"state"`
+	Was     string             `bson:"was"`
+	Created time.Time          `bson:"created"`
 }
 
 type Announce struct {
 	Id          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	AuthorId    primitive.ObjectID `bson:"user_id"`
-	Title       string             `bson:"state"`
+	AuthorId    primitive.ObjectID `bson:"author"`
+	Title       string             `bson:"title"`
 	Description string             `bson:"description"`
 	TargetDate  time.Time          `bson:"target_date"`
 

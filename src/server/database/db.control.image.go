@@ -10,11 +10,14 @@ import (
 	"io"
 )
 
-type ImageDB struct{}
+type ImageDB struct {
+	BaseDB
+	database *mongo.Database
+}
 
-func (c *ImageDB) Upload(file io.Reader, dataType string, uid primitive.ObjectID) (primitive.ObjectID, error) {
+func (db *ImageDB) Upload(file io.Reader, dataType string, uid primitive.ObjectID) (primitive.ObjectID, error) {
 	bucket, err := gridfs.NewBucket(
-		Instance.mongoClient.Database("Images"),
+		db.database,
 	)
 	if err != nil {
 		return primitive.ObjectID{}, err
@@ -30,39 +33,37 @@ func (c *ImageDB) Upload(file io.Reader, dataType string, uid primitive.ObjectID
 
 }
 
-func (c *ImageDB) DownloadById(id primitive.ObjectID) (bytes.Buffer, error) {
+func (db *ImageDB) DownloadById(id primitive.ObjectID) (bytes.Buffer, error) {
 	bucket, _ := gridfs.NewBucket(
-		Instance.mongoClient.Database("Images"),
+		db.database,
 	)
 	buf := bytes.Buffer{}
 	_, err := bucket.DownloadToStream(id, &buf)
 	return buf, err
 }
 
-func (c *ImageDB) GetMetdataById(id primitive.ObjectID) (map[string]interface{}, error) {
-	fsCollections := Instance.mongoClient.Database("Images").Collection("fs.files")
+func (db *ImageDB) GetMetdataById(id primitive.ObjectID) (map[string]interface{}, error) {
 	metadata := make(map[string]interface{})
-	if err := fsCollections.FindOne(timeoutContext(), bson.M{"_id": id}).Decode(&metadata); err != nil {
+	if err := db.collection.FindOne(timeoutContext(), bson.M{"_id": id}).Decode(&metadata); err != nil {
 		return metadata, err
 	}
 	return metadata["metadata"].(map[string]interface{}), nil
 }
 
-func (c *ImageDB) DeleteImageById(id primitive.ObjectID) error {
+func (db *ImageDB) DeleteImageById(id primitive.ObjectID) error {
 	bucket, _ := gridfs.NewBucket(
-		Instance.mongoClient.Database("Images"),
+		db.database,
 	)
 	return bucket.Delete(id)
 }
 
-func (c *ImageDB) ImageList(uploaderId primitive.ObjectID) ([]bson.M, error) {
-	fsCollections := Instance.mongoClient.Database("Images").Collection("fs.files")
+func (db *ImageDB) ImageList(uploaderId primitive.ObjectID) ([]bson.M, error) {
 	var data []bson.M
 	matchStage := bson.D{{"$match", bson.D{{"metadata.uploader", uploaderId}}}}
-	mapStage := bson.D{{"$project", bson.D{{"id", "$_id"}, {"_id", 0}, {"uploadDate", "$uploadDate"}}}}
+	projectStage := bson.D{{"$project", bson.D{{"id", "$_id"}, {"_id", 0}, {"uploadDate", "$uploadDate"}}}}
 
-	cursor, err := fsCollections.Aggregate(timeoutContext(),
-		mongo.Pipeline{matchStage, mapStage})
+	cursor, err := db.collection.Aggregate(timeoutContext(),
+		mongo.Pipeline{matchStage, projectStage})
 	if err != nil {
 		return data, err
 	}

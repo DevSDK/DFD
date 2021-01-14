@@ -3,26 +3,16 @@ package v1
 import (
 	"bytes"
 	"encoding/base64"
-	"encoding/json"
 	"github.com/DevSDK/DFD/src/server/database"
 	"github.com/DevSDK/DFD/src/server/database/models"
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"io/ioutil"
 	"strings"
 )
 
 func PostImage(c *gin.Context) {
-	body, err := ioutil.ReadAll(c.Request.Body)
-	if err != nil {
-		c.JSON(400, gin.H{"message": "wrong body request"})
-		return
-	}
-	var bodyMap map[string]interface{}
-	if err := json.Unmarshal([]byte(body), &bodyMap); err != nil {
-		c.JSON(400, gin.H{"message": "wrong body request"})
-		return
-	}
+	bodyMap := c.MustGet("bodymap").(bson.M)
 	imgString := bodyMap["img"]
 	if imgString == nil {
 		c.JSON(400, gin.H{"message": "wrong image"})
@@ -48,8 +38,12 @@ func PostImage(c *gin.Context) {
 	case "image/gif":
 		reader := bytes.NewReader(unbased)
 		user := c.MustGet("user").(models.User)
-		database.Instance.Image.Upload(reader, dataType, user.Id)
-		c.JSON(200, gin.H{"message": "success"})
+
+		dataId, err := database.Instance.Image.Upload(reader, dataType, user.Id)
+		if err != nil {
+			c.JSON(500, gin.H{"message": "image server error"})
+		}
+		c.JSON(200, gin.H{"message": "success", "id": dataId})
 		return
 	default:
 		c.JSON(400, gin.H{"message": "wrong data"})
@@ -103,5 +97,5 @@ func GetImageList(c *gin.Context) {
 		c.JSON(400, gin.H{"message": "cannt found images"})
 		return
 	}
-	c.JSON(200, gin.H{"message": list})
+	c.JSON(200, gin.H{"message": "success", "images": list})
 }

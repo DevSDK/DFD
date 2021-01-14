@@ -1,6 +1,8 @@
 package database
 
-type RedisStore struct{}
+type RedisStore struct {
+	BaseDB
+}
 
 func (c *RedisStore) Set(key string, value string) error {
 	return Instance.redisClient.Set(key, value, 0).Err()

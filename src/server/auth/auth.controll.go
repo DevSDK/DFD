@@ -128,14 +128,7 @@ func Refresh(c *gin.Context) {
 		intenralServerError(c, err)
 		return
 	}
-	newRefreshToken, err := CreateRefreshToken()
-	if err != nil {
-		intenralServerError(c, err)
-		return
-	}
-	database.Instance.Redis.Set(user.Id.Hex(), newRefreshToken)
 	c.SetCookie("access", newAccessToken, 0, "/", SERVER_URI, false, true)
-	c.SetCookie("refresh", newRefreshToken, 0, "/", SERVER_URI, false, true)
 	c.JSON(200, gin.H{"message": "success"})
 }
 

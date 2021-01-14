@@ -13,19 +13,34 @@ import (
 
 var Instance = DBInstance{}
 
+type BaseDB struct {
+	collection *mongo.Collection
+}
+
 type DBInstance struct {
 	mongoClient *mongo.Client
 	redisClient *redis.Client
 	database    *mongo.Database
 	User        UserDB
+	Announce    AnnounceDB
 	Redis       RedisStore
 	Role        RoleDB
 	Image       ImageDB
+	DFDHistory  DFDHistoryDB
 }
 
 func timeoutContext() context.Context {
 	ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	return ctx
+}
+
+func initializeCollections() {
+	Instance.User.collection = Instance.database.Collection("User")
+	Instance.Role.collection = Instance.database.Collection("Role")
+	Instance.Announce.collection = Instance.database.Collection("Announce")
+	Instance.DFDHistory.collection = Instance.database.Collection("DFDHistory")
+	Instance.Image.database = Instance.mongoClient.Database("Images")
+	Instance.Image.collection = Instance.mongoClient.Database("Images").Collection("fs.files")
 }
 
 func initializeMongoDB() error {
@@ -43,15 +58,15 @@ func initializeMongoDB() error {
 	}
 	Instance.mongoClient = mongoClient
 	Instance.database = mongoClient.Database("DFD")
-	userCollection := Instance.database.Collection("User")
-	userCollection.Indexes().CreateOne(
+	initializeCollections()
+	Instance.User.collection.Indexes().CreateOne(
 		timeoutContext(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "email", Value: 1}, {Key: "discord_id", Value: 1}},
 			Options: options.Index().SetUnique(true),
 		},
 	)
-	Instance.database.Collection("Role").Indexes().CreateOne(
+	Instance.Role.collection.Indexes().CreateOne(
 		timeoutContext(),
 		mongo.IndexModel{
 			Keys:    bson.D{{Key: "name", Value: 1}},

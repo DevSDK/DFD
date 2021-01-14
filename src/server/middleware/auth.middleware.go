@@ -1,4 +1,4 @@
-package auth
+package middleware
 
 import (
 	"github.com/DevSDK/DFD/src/server/database"
