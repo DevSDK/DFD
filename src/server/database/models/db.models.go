@@ -1,7 +1,9 @@
 package models
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"time"
 )
 
@@ -33,8 +35,11 @@ type Role struct {
 }
 
 type LOLHistory struct {
-	Id    primitive.ObjectID     `json:"id" bson:"_id,omitempty"`
-	Games map[string]interface{} `bson:games`
+	Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Game      bson.M             `bson:game`
+	Win       bool               `bson:win`
+	Timestamp int64              `bson:timestamp`
+	Created   time.Time          `bson:"created"`
 }
 
 type DFDHistory struct {

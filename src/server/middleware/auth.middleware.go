@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"github.com/DevSDK/DFD/src/server/database"
+	"github.com/DevSDK/DFD/src/server/utils"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -38,31 +39,32 @@ func JWTAuthMiddleware(permissions ...string) gin.HandlerFunc {
 		_, err = jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(DFD_SECRET_CODE), nil
 		})
+
 		if err != nil {
-			if err == jwt.ErrSignatureInvalid {
+			if (err.(*jwt.ValidationError)).Errors == jwt.ValidationErrorExpired {
 				c.JSON(http.StatusUnauthorized, gin.H{"message": "token is expired"})
 				c.Abort()
 				return
 			}
-			c.JSON(http.StatusForbidden, gin.H{"message": "Auth failed"})
+			c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Token is not valid"))
 			c.Abort()
 			return
 		}
 		userId, _ := primitive.ObjectIDFromHex((*claims)["id"].(string))
 		user, err := database.Instance.User.FindById(userId)
 		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Cannot found user"})
+			c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found user"))
 			c.Abort()
 			return
 		}
 		userRole, err := database.Instance.Role.FindByName(user.Role)
 		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{"message": "Cannot found role"})
+			c.JSON(http.StatusForbidden, utils.CreateForbbidnJSONMessage("Cannot found role"))
 			c.Abort()
 			return
 		}
 		if !contains(permissions, userRole.Permissions) {
-			c.JSON(http.StatusForbidden, gin.H{"message": "You don't have permission"})
+			c.JSON(http.StatusForbidden, utils.CreateForbbidnJSONMessage("You don't have permission"))
 			c.Abort()
 			return
 		}

@@ -18,15 +18,17 @@ type BaseDB struct {
 }
 
 type DBInstance struct {
-	mongoClient *mongo.Client
-	redisClient *redis.Client
-	database    *mongo.Database
-	User        UserDB
-	Announce    AnnounceDB
-	Redis       RedisStore
-	Role        RoleDB
-	Image       ImageDB
-	DFDHistory  DFDHistoryDB
+	mongoClient      *mongo.Client
+	redisClient      *redis.Client
+	database         *mongo.Database
+	User             UserDB
+	Announce         AnnounceDB
+	Redis            RedisStore
+	Role             RoleDB
+	Image            ImageDB
+	DFDHistory       DFDHistoryDB
+	LOLHistory       LOLHistoryDB
+	ApplicationToken ApplicationTokenDB
 }
 
 func timeoutContext() context.Context {
@@ -37,6 +39,8 @@ func timeoutContext() context.Context {
 func initializeCollections() {
 	Instance.User.collection = Instance.database.Collection("User")
 	Instance.Role.collection = Instance.database.Collection("Role")
+	Instance.LOLHistory.collection = Instance.database.Collection("LOLHistory")
+	Instance.ApplicationToken.collection = Instance.database.Collection("ApplicationToken")
 	Instance.Announce.collection = Instance.database.Collection("Announce")
 	Instance.DFDHistory.collection = Instance.database.Collection("DFDHistory")
 	Instance.Image.database = Instance.mongoClient.Database("Images")
@@ -73,7 +77,6 @@ func initializeMongoDB() error {
 			Options: options.Index().SetUnique(true),
 		},
 	)
-
 	return nil
 }
 

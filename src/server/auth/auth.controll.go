@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/DevSDK/DFD/src/server/database"
 	"github.com/DevSDK/DFD/src/server/database/models"
+	"github.com/DevSDK/DFD/src/server/utils"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -77,7 +78,7 @@ func Logout(c *gin.Context) {
 	SERVER_URI := os.Getenv("SERVER_URI")
 	accessToken, err := c.Cookie("access")
 	if err != nil {
-		c.JSON(401, gin.H{"message": "Auth failed"})
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Auth failed"})
 	}
 
 	c.SetCookie("refresh", "", -1, "/", SERVER_URI, false, true)
@@ -88,7 +89,7 @@ func Logout(c *gin.Context) {
 	})
 	claims, _ := token.Claims.(jwt.MapClaims)
 	database.Instance.Redis.Del(claims["id"].(string))
-	c.JSON(200, gin.H{"message": "success"})
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
 func Refresh(c *gin.Context) {
@@ -129,7 +130,7 @@ func Refresh(c *gin.Context) {
 		return
 	}
 	c.SetCookie("access", newAccessToken, 0, "/", SERVER_URI, false, true)
-	c.JSON(200, gin.H{"message": "success"})
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
 func Redirect(c *gin.Context) {
@@ -190,5 +191,5 @@ func Redirect(c *gin.Context) {
 	SERVER_URI := os.Getenv("SERVER_URI")
 	c.SetCookie("access", accessToken, 0, "/", SERVER_URI, false, true)
 	c.SetCookie("refresh", refreshToken, 0, "/", SERVER_URI, false, true)
-	c.Redirect(302, "/")
+	c.Redirect(http.StatusFound, "/")
 }

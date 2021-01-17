@@ -4,6 +4,8 @@ import (
 	"github.com/DevSDK/DFD/src/server/database/models"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"log"
 	"time"
 )
 
@@ -11,7 +13,7 @@ type UserDB struct {
 	BaseDB
 }
 
-func (db *UserDB) Register(userMap map[string]interface{}) (models.User, error) {
+func (db *UserDB) Register(userMap bson.M) (models.User, error) {
 	tokenString := userMap["tokenString"].(string)
 	user := models.User{
 		DiscordId:    userMap["id"].(string),
@@ -54,4 +56,21 @@ func (db *UserDB) UpdateById(id primitive.ObjectID, setElement *bson.D) error {
 	}
 	_, err := db.collection.UpdateOne(timeoutContext(), bson.M{"_id": id}, setMap)
 	return err
+}
+
+func (db *UserDB) GetLoLInfoList() []bson.M {
+	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"},
+		{"lol_username", "$lol_username"},
+		{"lol_account_id", "$lol_account_id"},
+		{"lol_puu_id", "$lol_puu_id"},
+		{"lol_id", "$lol_id"}}}}
+	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{aggregateStage})
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	result := []bson.M{}
+	if err := cursor.All(timeoutContext(), &result); err != nil {
+		log.Fatal(err.Error())
+	}
+	return result
 }

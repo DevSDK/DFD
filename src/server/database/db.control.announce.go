@@ -21,8 +21,8 @@ func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, limit int) ([]
 		{"created", "$created"},
 		{"modified", "$modified"},
 		{"target_date", "$target_date"}}}}
-
-	stages := mongo.Pipeline{aggregateStages}
+	sortStage := bson.D{{"$sort", bson.M{"created": -1}}}
+	stages := mongo.Pipeline{aggregateStages, sortStage}
 	if authorId != nil {
 		stages = append(stages, bson.D{{"$match", bson.D{{"_id", *authorId}}}})
 	}
