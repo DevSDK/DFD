@@ -44,8 +44,8 @@ func GetUser(c *gin.Context) {
 
 func GetMe(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
-	response := createCommonUserMap(user)
-	c.JSON(200, response)
+	result := createCommonUserMap(user)
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 func PutUser(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
