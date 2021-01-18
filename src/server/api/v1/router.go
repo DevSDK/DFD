@@ -7,8 +7,8 @@ import (
 
 func Initialize(router *gin.RouterGroup) {
 	v1router := router.Group("v1")
-	v1router.PUT("/user", middleware.AppAndJWTAuthMiddleware(false, "user.put"), middleware.JsonParseMiddleware, PutUser)
-	v1router.PUT("/user/lol", middleware.AppAndJWTAuthMiddleware(false, "user.put"), middleware.JsonParseMiddleware, PutUserLolName)
+	v1router.PATCH("/user", middleware.AppAndJWTAuthMiddleware(false, "user.put"), middleware.JsonParseMiddleware, PutUser)
+	v1router.PATCH("/user/lol", middleware.AppAndJWTAuthMiddleware(false, "user.put"), middleware.JsonParseMiddleware, PutUserLolName)
 	v1router.GET("/user/:id", middleware.AppAndJWTAuthMiddleware(true, "user.get"), GetUser)
 	v1router.GET("/user", middleware.AppAndJWTAuthMiddleware(false, "user.get"), GetMe)
 
@@ -23,12 +23,11 @@ func Initialize(router *gin.RouterGroup) {
 
 	v1router.GET("/announces", middleware.AppAndJWTAuthMiddleware(true, "announces.get"), GetAnnounceList)
 	v1router.GET("/announces/:id", middleware.AppAndJWTAuthMiddleware(true, "announces.get"), GetAnnounceList)
-
 	v1router.POST("/announce", middleware.AppAndJWTAuthMiddleware(false, "announce.post"), middleware.JsonParseMiddleware, PostAnnounce)
 	v1router.GET("/announce", middleware.AppAndJWTAuthMiddleware(false, "announce.get"), GetAnnounceListMe)
 	v1router.GET("/announce/:id", middleware.AppAndJWTAuthMiddleware(true, "announce.get"), GetAnnounce)
 	v1router.DELETE("/announce/:id", middleware.AppAndJWTAuthMiddleware(false, "announce.delete"), DelAnnounce)
-	v1router.PUT("/announce/:id", middleware.AppAndJWTAuthMiddleware(false, "announce.put"), middleware.JsonParseMiddleware, PutAnnounce)
+	v1router.PATCH("/announce/:id", middleware.AppAndJWTAuthMiddleware(false, "announce.put"), middleware.JsonParseMiddleware, PutAnnounce)
 
 	v1router.POST("/application/token", middleware.AppAndJWTAuthMiddleware(false, "admin.token.create"), PostAppicationToken)
 	v1router.POST("/lol/history/updater", middleware.VerifyApplicationTokenMiddleware, middleware.JsonParseMiddleware, PostLolHistoryUpdate)

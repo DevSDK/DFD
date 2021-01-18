@@ -8,14 +8,13 @@ import (
 	"github.com/DevSDK/DFD/src/server/utils"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -65,7 +64,8 @@ func CreateAccessToken(user models.User) (string, error) {
 func CreateRefreshToken() (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
-	atClaims["flag"] = strconv.Itoa(rand.Int())
+	uuid, _ := uuid.NewUUID()
+	atClaims["uuid"] = uuid
 	token, err := createToken(atClaims)
 	return token, err
 }
@@ -76,19 +76,22 @@ func Login(c *gin.Context) {
 
 func Logout(c *gin.Context) {
 	SERVER_URI := os.Getenv("SERVER_URI")
-	accessToken, err := c.Cookie("access")
+	_, err := c.Cookie("access")
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"message": "Auth failed"})
+		return
 	}
-
-	c.SetCookie("refresh", "", -1, "/", SERVER_URI, false, true)
 	c.SetCookie("access", "", -1, "/", SERVER_URI, false, true)
 
-	token, _ := jwt.Parse(accessToken, func(token *jwt.Token) (interface{}, error) {
-		return []byte(""), nil
-	})
-	claims, _ := token.Claims.(jwt.MapClaims)
-	database.Instance.Redis.Del(claims["id"].(string))
+	refreshToken, err := c.Cookie("refresh")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"message": "Auth failed"})
+		return
+	}
+	c.SetCookie("refresh", "", -1, "/", SERVER_URI, false, true)
+
+	//Register refresh blacklist
+	database.Instance.Redis.Set(refreshToken, true)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
@@ -97,12 +100,12 @@ func Refresh(c *gin.Context) {
 	SERVER_URI := os.Getenv("SERVER_URI")
 	accessToken, err := c.Cookie("access")
 	if err != nil {
-		c.JSON(400, gin.H{"message": "no access token"})
+		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("no access token"))
 		return
 	}
 	refreshToken, err := c.Cookie("refresh")
 	if err != nil {
-		c.JSON(400, gin.H{"message": "no refresh token"})
+		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("no refresh token"))
 		return
 	}
 	parser := jwt.Parser{SkipClaimsValidation: true}
@@ -110,14 +113,19 @@ func Refresh(c *gin.Context) {
 		return []byte(DFD_SECRET_CODE), nil
 	})
 	if !token.Valid {
-		c.JSON(400, gin.H{"message": "wrong access token"})
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("no refresh token"))
 		return
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
 	useridHex := claims["id"].(string)
-	redis_token, err := database.Instance.Redis.Get(useridHex)
-	if redis_token != refreshToken || err != nil {
-		c.JSON(400, gin.H{"message": "wrong refresh token"})
+	isBlackListed, err := database.Instance.Redis.Get(refreshToken)
+
+	token, _ = parser.Parse(refreshToken, func(token *jwt.Token) (interface{}, error) {
+		return []byte(DFD_SECRET_CODE), nil
+	})
+
+	if isBlackListed == "true" || err == nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("refresh token is expired"))
 		return
 	}
 
