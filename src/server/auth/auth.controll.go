@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"fmt"
+	_ "github.com/DevSDK/DFD/src/server/api/v1/docmodels"
 	"github.com/DevSDK/DFD/src/server/database"
 	"github.com/DevSDK/DFD/src/server/database/models"
 	"github.com/DevSDK/DFD/src/server/utils"
@@ -17,11 +18,6 @@ import (
 	"os"
 	"time"
 )
-
-func intenralServerError(c *gin.Context, err error) {
-	c.JSON(502, gin.H{"message": "Internal Server Error"})
-	log.Print(err.Error())
-}
 
 func checkAndInsertUser(userMap map[string]interface{}) models.User {
 	user, err := database.Instance.User.FindByEmail(userMap["email"].(string))
@@ -70,15 +66,32 @@ func CreateRefreshToken() (string, error) {
 	return token, err
 }
 
+// @Summary Login
+// @Description Redirect to discord Oauth2 login page
+// @Accept  json
+// @Produce  json
+// @tags auth/
+// @Router /auth/login [get]
 func Login(c *gin.Context) {
-	c.Redirect(http.StatusFound, CreateDiscordOauthURI())
+	url := CreateDiscordOauthURI()
+	c.Redirect(http.StatusFound, url)
 }
 
+// @Summary Logout
+// @Description Delete access token and refresh token from cookie. And register the refresh token into blacklist
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess "success"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Security ApiKeyAuth
+// @tags auth/
+// @Router /auth/logout [get]
 func Logout(c *gin.Context) {
 	SERVER_URI := os.Getenv("SERVER_URI")
-	_, err := c.Cookie("access")
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"message": "Auth failed"})
+	headerToken := c.Request.Header["Authorization"]
+	if headerToken == nil || len(headerToken) == 0 {
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Access token required", false))
+		c.Abort()
 		return
 	}
 	c.SetCookie("access", "", -1, "/", SERVER_URI, false, true)
@@ -95,14 +108,27 @@ func Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
+// @Summary Refresh token
+// @Description Refresh access token token. REQUIRED: access and refresh JWT token in cookie.
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess "success"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Security ApiKeyAuth
+// @tags auth/
+// @Router /auth/refresh [get]
 func Refresh(c *gin.Context) {
 	DFD_SECRET_CODE := os.Getenv("DFD_SECRET_CODE")
 	SERVER_URI := os.Getenv("SERVER_URI")
-	accessToken, err := c.Cookie("access")
-	if err != nil {
-		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("no access token"))
+
+	headerToken := c.Request.Header["Authorization"]
+	if headerToken == nil || len(headerToken) == 0 {
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Access token required", false))
+		c.Abort()
 		return
 	}
+	accessToken := headerToken[0]
 	refreshToken, err := c.Cookie("refresh")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("no refresh token"))
@@ -113,7 +139,7 @@ func Refresh(c *gin.Context) {
 		return []byte(DFD_SECRET_CODE), nil
 	})
 	if !token.Valid {
-		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("no refresh token"))
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("no refresh token", false))
 		return
 	}
 	claims, _ := token.Claims.(jwt.MapClaims)
@@ -125,7 +151,7 @@ func Refresh(c *gin.Context) {
 	})
 
 	if isBlackListed == "true" || err == nil || !token.Valid {
-		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("refresh token is expired"))
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("refresh token is expired", true))
 		return
 	}
 
@@ -134,7 +160,8 @@ func Refresh(c *gin.Context) {
 
 	newAccessToken, err := CreateAccessToken(user)
 	if err != nil {
-		intenralServerError(c, err)
+		log.Print(err.Error())
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 	c.SetCookie("access", newAccessToken, 0, "/", SERVER_URI, false, true)
@@ -157,7 +184,8 @@ func Redirect(c *gin.Context) {
 	tokenString, _ := ioutil.ReadAll(resp.Body)
 	var accessMap map[string]interface{}
 	if err := json.Unmarshal([]byte(tokenString), &accessMap); err != nil {
-		intenralServerError(c, err)
+		log.Print(err.Error())
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 
@@ -165,21 +193,21 @@ func Redirect(c *gin.Context) {
 	//Reqeust user information to discord server
 	userInfoRequest, err := http.NewRequest("GET", DISCORD_API_BASE+"/users/@me", nil)
 	if err != nil {
-		c.JSON(502, gin.H{"message": "Internal Server Error"})
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		log.Print(err.Error())
 		return
 	}
 	userInfoRequest.Header.Add("Authorization", bearer)
 	resp, err = (&http.Client{}).Do(userInfoRequest)
 	if err != nil {
-		c.JSON(502, gin.H{"message": "Discord Server Error"})
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		log.Print(err.Error())
 		return
 	}
 	body, _ := ioutil.ReadAll(resp.Body)
 	var userMap map[string]interface{}
 	if err := json.Unmarshal([]byte(body), &userMap); err != nil {
-		intenralServerError(c, err)
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 
@@ -187,12 +215,14 @@ func Redirect(c *gin.Context) {
 	user := checkAndInsertUser(userMap)
 	accessToken, err := CreateAccessToken(user)
 	if err != nil {
-		intenralServerError(c, err)
+		log.Print(err.Error())
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 	refreshToken, err := CreateRefreshToken()
 	if err != nil {
-		intenralServerError(c, err)
+		log.Print(err.Error())
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 	database.Instance.Redis.Set(user.Id.Hex(), refreshToken)

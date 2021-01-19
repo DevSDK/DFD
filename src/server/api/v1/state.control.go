@@ -10,18 +10,62 @@ import (
 	"net/http"
 )
 
+// @Summary Get state history
+// @Description Get user's state change history
+// @Description Permission : **states.get**
+// @Accept  json
+// @Produce  json
+// @Param id path string true "User ID"
+// @Success 200 {object} docmodels.ResponseSuccess{history=[]models.DFDHistory} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/state
+// @Router /api/v1/states/{id} [get]
 func GetStateHistory(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	list, _ := database.Instance.DFDHistory.GetList(id)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"history": list}))
 }
 
+// @Summary Get my state history
+// @Description Get my state change history
+// @Description Permission : **states.get**
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess{history=[]models.DFDHistory} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/state
+// @Router /api/v1/states [get]
 func GetOwnStateHistory(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	list, _ := database.Instance.DFDHistory.GetList(user.Id)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"history": list}))
 }
 
+// @Summary Create state
+// @Description Create state
+// @Description Permission : **states.post**
+// @Accept  json
+// @Produce  json
+// @Param state body docmodels.RequestBodyStatePost true "Create user state"
+// @Success 200 {object} docmodels.ResponseSuccess "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/state
+// @Router /api/v1/state [post]
 func PostState(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	user := c.MustGet("user").(models.User)

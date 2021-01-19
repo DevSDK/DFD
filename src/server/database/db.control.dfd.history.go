@@ -21,7 +21,8 @@ func (db *DFDHistoryDB) getList(userId primitive.ObjectID, limit int) ([]bson.M,
 	projectStage := bson.D{{"$project", bson.D{{"id", "$_id"}, {"_id", 0}, {"created", "$created"},
 		{"state", "$state"}, {"was", "$was"}}}}
 	limitStage := bson.D{{"$limit", limit}}
-	stages := mongo.Pipeline{matchStage, projectStage}
+	sortStage := bson.D{{"$sort", bson.D{{"created", -1}}}}
+	stages := mongo.Pipeline{matchStage, projectStage, sortStage}
 	if limit > 0 {
 		stages = append(stages, limitStage)
 	}

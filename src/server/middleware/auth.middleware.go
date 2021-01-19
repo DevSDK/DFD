@@ -33,25 +33,26 @@ func AppAndJWTAuthMiddleware(isApplicationAllowed bool, permissions ...string) g
 		}
 
 		DFD_SECRET_CODE := os.Getenv("DFD_SECRET_CODE")
-		accessToken, err := c.Cookie("access")
-		if err != nil {
-			c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Access token required"))
+		headerToken := c.Request.Header["Authorization"]
+		if headerToken == nil || len(headerToken) == 0 {
+			c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Access token required", false))
 			c.Abort()
 			return
 		}
+		accessToken := headerToken[0]
 
 		claims := &jwt.MapClaims{}
-		_, err = jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
+		_, err := jwt.ParseWithClaims(accessToken, claims, func(token *jwt.Token) (interface{}, error) {
 			return []byte(DFD_SECRET_CODE), nil
 		})
 
 		if err != nil {
 			if (err.(*jwt.ValidationError)).Errors == jwt.ValidationErrorExpired {
-				c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("token is expired"))
+				c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("token is expired", true))
 				c.Abort()
 				return
 			}
-			c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Token is not valid"))
+			c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("Token is not valid", false))
 			c.Abort()
 			return
 		}

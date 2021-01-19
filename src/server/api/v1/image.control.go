@@ -14,6 +14,21 @@ import (
 	"strings"
 )
 
+// @Summary Post image
+// @Description Upload Image by base64 image. It supports **png, jpeg, gif**
+// @Description Permission : **image.post**
+// @Accept  json
+// @Produce  json
+// @Param img body docmodels.RequestBodyImagePost true "base64 image"
+// @Success 200 {object} docmodels.ResponseSuccess{id=string} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/image
+// @Router /api/v1/image [post]
 func PostImage(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	if bodyMap["img"] == nil {
@@ -35,7 +50,8 @@ func PostImage(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("invalid base64 image"))
 		return
 	}
-	switch dataType := parts[0][5:]; dataType {
+	dataType := strings.Split(parts[0][5:], ";")[0]
+	switch dataType {
 	case "image/png":
 		fallthrough
 	case "image/jpeg":
@@ -57,6 +73,20 @@ func PostImage(c *gin.Context) {
 	}
 }
 
+// @Summary Get image by id
+// @Description Get Image. When Success it provide image
+// @Accept  json
+// @Produce  png
+// @Produce  jpeg
+// @Produce  gif
+// @Param id path string true "Image ID"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @tags api/v1/image
+// @Router /api/v1/image/{id} [get]
 func GetImage(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	buf, err := database.Instance.Image.DownloadById(id)
@@ -73,6 +103,21 @@ func GetImage(c *gin.Context) {
 	c.Writer.Write(buf.Bytes())
 }
 
+// @Summary Delete image
+// @Description Delete image by image id.
+// @Description Permission : **image.delete**
+// @Accept  json
+// @Produce  json
+// @Param id path string true "Image ID"
+// @Success 200 {object} docmodels.ResponseSuccess "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/image
+// @Router /api/v1/image/{id} [delete]
 func DelImage(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	user := c.MustGet("user").(models.User)
@@ -94,6 +139,20 @@ func DelImage(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
+// @Summary Get my image list
+// @Description Get Image list uploaded from me.
+// @Description Permission : **imagelist.get**
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess{images=[]docmodels.ResponseImageElement} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/image
+// @Router /api/v1/images [get]
 func GetImageList(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	list, err := database.Instance.Image.ImageList(user.Id)

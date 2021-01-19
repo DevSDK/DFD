@@ -29,7 +29,7 @@ func JsonParseMiddleware(c *gin.Context) {
 }
 
 func VerifyApplicationTokenMiddleware(c *gin.Context) {
-	tokenString := c.Request.Header["Dfd-App-Auth"]
+	tokenString := c.Request.Header["X-Dfd-App-Auth"]
 	if tokenString == nil {
 		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("App-Auth token required"))
 		c.Abort()
@@ -37,7 +37,7 @@ func VerifyApplicationTokenMiddleware(c *gin.Context) {
 	}
 	token, _ := primitive.ObjectIDFromHex(tokenString[0])
 	if !database.Instance.ApplicationToken.Exist(token) {
-		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("invalid token"))
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage("invalid token", false))
 		c.Abort()
 		return
 	}
