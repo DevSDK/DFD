@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"log"
 	"os"
 	"time"
 )
@@ -52,12 +53,17 @@ func initializeMongoDB() error {
 	DB_AUTH_ID := os.Getenv("DB_AUTH_ID")
 	DB_AUTH_PASSWORD := os.Getenv("DB_AUTH_PASSWORD")
 	DB_CONNECTION_ADDRESS := fmt.Sprintf("mongodb://%s:%s@%s", DB_AUTH_ID, DB_AUTH_PASSWORD, DB_LOCATION)
-	mongoClient, _ := mongo.NewClient(options.Client().ApplyURI(DB_CONNECTION_ADDRESS))
-
+	mongoClient, err := mongo.NewClient(options.Client().ApplyURI(DB_CONNECTION_ADDRESS))
+	if err != nil {
+		log.Print("DB URL: " + DB_CONNECTION_ADDRESS)
+		return err
+	}
 	if err := mongoClient.Connect(timeoutContext()); err != nil {
+		log.Print("DB URL: " + DB_CONNECTION_ADDRESS)
 		return err
 	}
 	if err := mongoClient.Ping(timeoutContext(), nil); err != nil {
+		log.Print("DB URL: " + DB_CONNECTION_ADDRESS)
 		return err
 	}
 	Instance.mongoClient = mongoClient
@@ -90,6 +96,9 @@ func initializeRedis() error {
 		DB:       0,
 	})
 	_, err := Instance.redisClient.Ping().Result()
+	if err != nil {
+		log.Print("Redis")
+	}
 	return err
 }
 

@@ -28,7 +28,7 @@ import (
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/image
-// @Router /api/v1/image [post]
+// @Router /v1/image [post]
 func PostImage(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	if bodyMap["img"] == nil {
@@ -86,7 +86,7 @@ func PostImage(c *gin.Context) {
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @tags api/v1/image
-// @Router /api/v1/image/{id} [get]
+// @Router /v1/image/{id} [get]
 func GetImage(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	buf, err := database.Instance.Image.DownloadById(id)
@@ -117,7 +117,7 @@ func GetImage(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/image
-// @Router /api/v1/image/{id} [delete]
+// @Router /v1/image/{id} [delete]
 func DelImage(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	user := c.MustGet("user").(models.User)
@@ -152,7 +152,7 @@ func DelImage(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/image
-// @Router /api/v1/images [get]
+// @Router /v1/images [get]
 func GetImageList(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	list, err := database.Instance.Image.ImageList(user.Id)

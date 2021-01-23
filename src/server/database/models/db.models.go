@@ -13,8 +13,8 @@ type ApplicationAuth struct {
 
 type User struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	ProfileImage primitive.ObjectID `bson:"profile_image_id"`
-	DiscordId    string             `bson:"discord_id,unique" swaggerignore:"true"`
+	ProfileImage primitive.ObjectID `json: "profile_image" bson:"profile_image_id"`
+	DiscordId    string             `json:"discord_id" bson:"discord_id,unique"`
 	Username     string             `bson:"username,omitempty"`
 	Email        string             `bson:"email,omitempty,unique" format:"email"`
 	LolId        string             `bson:"lol_id" swaggerignore:"true"`
@@ -24,7 +24,7 @@ type User struct {
 	RefreshToken string             `bson:"refresh,omitempty" swaggerignore:"true"`
 	Role         string             `bson:"role"`
 	Created      time.Time          `bson:"created" format:"date-time"`
-	Modified     time.Time          `bson:"modified" swaggerignore:"true"`
+	Modified     time.Time          `bson:"modified" format:"date-time"`
 }
 
 type Role struct {

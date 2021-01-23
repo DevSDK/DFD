@@ -20,11 +20,9 @@ var doc = `{
         "title": "{{.Title}}",
         "contact": {
             "name": "Seokho Song",
-            "url": "http://github.com/devsdk",
-            "email": "0xdevssh@gmail.com"
+            "url": "http://github.com/devsdkGIN_MODE"
         },
         "license": {
-            "name": "MIT",
             "url": "https://opensource.org/licenses/MIT"
         },
         "version": "{{.Version}}"
@@ -32,7 +30,96 @@ var doc = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/v1/announce": {
+        "/auth/login": {
+            "get": {
+                "description": "Redirect to discord Oauth2 login page",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth/"
+                ],
+                "summary": "Login"
+            }
+        },
+        "/auth/logout": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Delete access token and refresh token from cookie. And register the refresh token into blacklist",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth/"
+                ],
+                "summary": "Logout",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseSuccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Refresh access token token. REQUIRED: access and refresh JWT token in cookie.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth/"
+                ],
+                "summary": "Refresh token",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseSuccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/announce": {
             "post": {
                 "security": [
                     {
@@ -113,7 +200,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/announce/{id}": {
+        "/v1/announce/{id}": {
             "get": {
                 "security": [
                     {
@@ -272,7 +359,7 @@ var doc = `{
                 "tags": [
                     "api/v1/announce"
                 ],
-                "summary": "Patch",
+                "summary": "Patch Announce",
                 "parameters": [
                     {
                         "type": "string",
@@ -325,7 +412,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/announces/all": {
+        "/v1/announces/all": {
             "get": {
                 "security": [
                     {
@@ -398,7 +485,80 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/announces/me": {
+        "/v1/announces/current": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get announce list greater then target-date from NOW sorted by creation time\nPermission : **announces.get**",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/announce"
+                ],
+                "summary": "Get current announce list",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "list": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/models.Announce"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "403": {
+                        "description": "You don't have permission",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/announces/me": {
             "get": {
                 "security": [
                     {
@@ -471,7 +631,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/announces/user/{id}": {
+        "/v1/announces/user/{id}": {
             "get": {
                 "security": [
                     {
@@ -547,7 +707,134 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/image": {
+        "/v1/application/riot/access": {
+            "patch": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "1st party application token.\nPermission : **admin.token.create**",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/admin"
+                ],
+                "summary": "Create new application token",
+                "parameters": [
+                    {
+                        "description": "body",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.RequestBodyToken"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseSuccess"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/application/token": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "1st party application token.\nPermission : **admin.token.create**",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/admin"
+                ],
+                "summary": "Create new application token",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "token": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/image": {
             "post": {
                 "security": [
                     {
@@ -628,7 +915,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/image/{id}": {
+        "/v1/image/{id}": {
             "get": {
                 "description": "Get Image. When Success it provide image",
                 "consumes": [
@@ -751,7 +1038,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/images": {
+        "/v1/images": {
             "get": {
                 "security": [
                     {
@@ -824,7 +1111,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/lol/history/updater": {
+        "/v1/lol/history/updater": {
             "post": {
                 "security": [
                     {
@@ -906,7 +1193,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/lol/history/{id}": {
+        "/v1/lol/history/{id}": {
             "get": {
                 "description": "Find game after the timestamp and store to DB",
                 "consumes": [
@@ -980,7 +1267,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/lol/historys": {
+        "/v1/lol/historys": {
             "get": {
                 "description": "Find game after the timestamp and store to DB",
                 "consumes": [
@@ -1048,7 +1335,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/state": {
+        "/v1/state": {
             "post": {
                 "security": [
                     {
@@ -1117,7 +1404,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/states": {
+        "/v1/states": {
             "get": {
                 "security": [
                     {
@@ -1190,7 +1477,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/states/{id}": {
+        "/v1/states/{id}": {
             "get": {
                 "security": [
                     {
@@ -1272,7 +1559,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/user": {
+        "/v1/user": {
             "get": {
                 "security": [
                     {
@@ -1347,7 +1634,7 @@ var doc = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "edit userfield. For now, only username can could be patched\nPermission : **user.patch**",
+                "description": "edit userfield.\nPermission : **user.patch**",
                 "consumes": [
                     "application/json"
                 ],
@@ -1365,19 +1652,7 @@ var doc = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/docmodels.RequestEmpty"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "username": {
-                                            "type": "string"
-                                        }
-                                    }
-                                }
-                            ]
+                            "$ref": "#/definitions/docmodels.RequestBodyPatchUser"
                         }
                     }
                 ],
@@ -1421,7 +1696,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/user/lol": {
+        "/v1/user/lol": {
             "patch": {
                 "security": [
                     {
@@ -1502,7 +1777,7 @@ var doc = `{
                 }
             }
         },
-        "/api/v1/user/{id}": {
+        "/v1/user/{id}": {
             "get": {
                 "security": [
                     {
@@ -1581,95 +1856,6 @@ var doc = `{
                     }
                 }
             }
-        },
-        "/auth/login": {
-            "get": {
-                "description": "Redirect to discord Oauth2 login page",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth/"
-                ],
-                "summary": "Login"
-            }
-        },
-        "/auth/logout": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Delete access token and refresh token from cookie. And register the refresh token into blacklist",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth/"
-                ],
-                "summary": "Logout",
-                "responses": {
-                    "200": {
-                        "description": "success",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseSuccess"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
-                        }
-                    }
-                }
-            }
-        },
-        "/auth/refresh": {
-            "get": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
-                "description": "Refresh access token token. REQUIRED: access and refresh JWT token in cookie.",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "auth/"
-                ],
-                "summary": "Refresh token",
-                "responses": {
-                    "200": {
-                        "description": "success",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseSuccess"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
-                        }
-                    },
-                    "404": {
-                        "description": "Cannt found user",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseNotFound"
-                        }
-                    }
-                }
-            }
         }
     },
     "definitions": {
@@ -1700,12 +1886,34 @@ var doc = `{
                 }
             }
         },
+        "docmodels.RequestBodyPatchUser": {
+            "type": "object",
+            "properties": {
+                "profile_image_id": {
+                    "type": "string",
+                    "example": "6006d3cc95f8c8e32d660c04"
+                },
+                "username": {
+                    "type": "string",
+                    "example": "devsdk"
+                }
+            }
+        },
         "docmodels.RequestBodyStatePost": {
             "type": "object",
             "properties": {
                 "state": {
                     "type": "string",
                     "example": "Working"
+                }
+            }
+        },
+        "docmodels.RequestBodyToken": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string",
+                    "example": "riot-api-access"
                 }
             }
         },
@@ -1866,6 +2074,9 @@ var doc = `{
                     "type": "string",
                     "format": "date-time"
                 },
+                "discord_id": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string",
                     "format": "email"
@@ -1875,6 +2086,10 @@ var doc = `{
                 },
                 "lolUsername": {
                     "type": "string"
+                },
+                "modified": {
+                    "type": "string",
+                    "format": "date-time"
                 },
                 "profileImage": {
                     "type": "string"
@@ -1909,11 +2124,11 @@ type swaggerInfo struct {
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = swaggerInfo{
 	Version:     "1.0",
-	Host:        "localhost:8080",
+	Host:        "devsdk.net/api/dfd",
 	BasePath:    "/",
 	Schemes:     []string{},
 	Title:       "DFD API",
-	Description: "# This is a DFD server\nMost of api endpoints aim to restful.\n## Permissions\nAPI endpoints request a permission.\nIf not described, It is public API.\nPermissions are described below table:\n| Permission      | Description                     | Role               |\n|-----------------|---------------------------------|--------------------|\n| user.patch      | Allows edit user information.   | Admin <br/> User   |\n| user.get        | Allows get user information     | Admin <br/> User   |\n| imagelist.get   | Allows get own image list       | Admin <br /> User  |\n| image.post      | Allows image upload             | Admin  <br /> User |\n| image.delete    | Allows image delete             | Admin  <br /> User |\n| states.get      | Allows get states history       | Admin  <br /> User |\n| states.post     | Allows create states            | Admin  <br /> User |\n| announces.get   | Allows get states announce list | Admin  <br /> User |\n| announce.post   | Allows create announce          | Admin  <br /> User |\n| announce.get    | Allows get announce             | Admin  <br /> User |\n| announce.delete | Allows delete my announce       | Admin  <br /> User |\n| announce.patch  | Allows patch announce           | Admin  <br /> User |\n## Authentication\nLogin is working with discord Oauth2.\nAfter login, the access and refresh token stored in Cookie.\nHowever, all request takes access token in **Authorization** header for security.\nThe access token is JWT statless token.\nRefresh token is stored and used cookie.",
+	Description: "# This is a DFD server\nMost of api endpoints aim to restful.\n## Permissions\nAPI endpoints request a permission.\nIf not described, It is public API.\nPermissions are described below table:\n| Permission        | Description                         | Role               |\n|-------------------|-------------------------------------|--------------------|\n| user.patch        | Allows edit user information.       | Admin <br/> User   |\n| user.get          | Allows get user information         | Admin <br/> User   |\n| imagelist.get     |  Allows get own image list          | Admin <br /> User  |\n| image.post        | Allows image upload                 | Admin  <br /> User |\n| image.delete      | Allows image delete                 | Admin  <br /> User |\n| states.get        | Allows get states history           | Admin  <br /> User |\n| states.post       | Allows create states                | Admin  <br /> User |\n| announces.get     | Allows get states announce list     | Admin  <br /> User |\n| announce.post     | Allows create announce              | Admin  <br /> User |\n| announce.get      | Allows get announce                 | Admin  <br /> User |\n| announce.delete   | Allows delete my announce           | Admin  <br /> User |\n| announce.patch    | Allows patch announce               | Admin  <br /> User |\n| admin.token.create| Allows create and patch admin token | Admin              |\n## Authentication\nLogin is working with discord Oauth2.\nAfter login, the access and refresh token stored in Cookie.\nHowever, all request takes access token in **Authorization** header for security.\nThe access token is JWT statless token.\nRefresh token is stored and used cookie.",
 }
 
 type s struct{}

@@ -26,6 +26,7 @@ func createCommonUserMap(user models.User) gin.H {
 		"role":          user.Role,
 		"profile_image": user.ProfileImage,
 		"created":       user.Created,
+		"modified":      user.Modified,
 	}
 }
 
@@ -44,7 +45,7 @@ func createCommonUserMap(user models.User) gin.H {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/user
-// @Router /api/v1/user/{id} [get]
+// @Router /v1/user/{id} [get]
 func GetUser(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	user, err := database.Instance.User.FindById(id)
@@ -69,7 +70,7 @@ func GetUser(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/user
-// @Router /api/v1/user [get]
+// @Router /v1/user [get]
 func GetMe(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	result := createCommonUserMap(user)
@@ -77,11 +78,11 @@ func GetMe(c *gin.Context) {
 }
 
 // @Summary Edit user information
-// @Description edit userfield. For now, only username can could be patched
+// @Description edit userfield.
 // @Description Permission : **user.patch**
 // @Accept  json
 // @Produce  json
-// @Param username body docmodels.RequestEmpty{username=string} true "username"
+// @Param username body docmodels.RequestBodyPatchUser true "username"
 // @Success 200 {object} docmodels.ResponseSuccess "success"
 // @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
 // @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
@@ -90,12 +91,32 @@ func GetMe(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/user
-// @Router /api/v1/user [patch]
+// @Router /v1/user [patch]
 func PatchUser(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	user := c.MustGet("user").(models.User)
 	setElement := &bson.D{}
 	utils.ApplySetElementStringSameTarget(setElement, bodyMap, "username")
+
+	if bodyMap["profile_image_id"] != nil {
+		imageIdString, ok := bodyMap["profile_image_id"].(string)
+		if !ok {
+			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("image id is not string"))
+			return
+		}
+		imageId, _ := primitive.ObjectIDFromHex(imageIdString)
+		metaData, err := database.Instance.Image.GetMetdataById(imageId)
+		if err != nil {
+			c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found image"))
+			return
+		}
+		uploader := metaData["uploader"].(primitive.ObjectID)
+		if uploader.Hex() != user.Id.Hex() {
+			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("Image is not valid"))
+			return
+		}
+		utils.ApplySetElementStringSameTarget(setElement, bodyMap, "profile_image_id")
+	}
 	if err := database.Instance.User.UpdateById(user.Id, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))
 		return
@@ -117,7 +138,7 @@ func PatchUser(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/user
-// @Router /api/v1/user/lol [patch]
+// @Router /v1/user/lol [patch]
 func PatchUserLolName(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	user := c.MustGet("user").(models.User)

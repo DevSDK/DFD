@@ -14,7 +14,11 @@ func initialize() *gin.Engine {
 	engine := gin.Default()
 	base := engine.Group("/")
 	//API Document
-	url := ginSwagger.URL("http://localhost:8080/docs/v1/doc.json")
+	url := ginSwagger.URL("http://localhost:18020/docs/v1/doc.json")
+	if os.Getenv("GIN_MODE") == "release" {
+		url = ginSwagger.URL("https://devsdk.net/api/dfd/docs/v1/doc.json")
+	}
+
 	base.GET("docs/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
 	auth.Initialize(base)
@@ -24,6 +28,6 @@ func initialize() *gin.Engine {
 
 func RunServer() {
 	engine := initialize()
-	SERVER_PORT := os.Getenv("SERVER_PORT")
-	engine.Run(":" + SERVER_PORT)
+	SERVER_PORT := "18020"
+	engine.Run("0.0.0.0:" + SERVER_PORT)
 }

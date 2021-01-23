@@ -24,6 +24,7 @@ func parseMatchesToIdArray(bodyMap bson.M) []string {
 }
 
 func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[string]int32, accountId string, timestamp int64) {
+	log.Print(timestamp)
 	for i := 1; i <= 3600; i++ {
 		defer (*wg).Done()
 		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matchlists/by-account/"+accountId,
@@ -38,7 +39,6 @@ func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[strin
 			return
 		}
 		array := parseMatchesToIdArray(respMap)
-		log.Print(array)
 		for _, id := range array {
 			(*mutex).Lock()
 			(*countMap)[id] += 1
@@ -106,12 +106,18 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/lol/history
-// @Router /api/v1/lol/history/updater [post]
+// @Router /v1/lol/history/updater [post]
 func PostLolHistoryUpdate(c *gin.Context) {
-	_, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
+	response, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
 
 	if respCode == 403 {
 		log.Print("RIOT API Token is invalid")
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
+		return
+	}
+	if respCode != 200 {
+		log.Print("Riot response:")
+		log.Print(response)
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
@@ -121,10 +127,12 @@ func PostLolHistoryUpdate(c *gin.Context) {
 		timeString = time.Now().Format(time.RFC3339)
 	}
 
-	_, err = time.Parse(time.RFC3339, timeString)
+	t, err := time.Parse(time.RFC3339, timeString)
 	if err != nil {
+		log.Print("/v1/lol/history/updater")
+		log.Print("Time format is not RFC3339")
 		log.Print(timeString)
-		log.Fatal(err.Error())
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
 	database.Instance.Redis.Set("UpdateTimestamp", time.Now().Format(time.RFC3339))
@@ -138,7 +146,7 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	for _, user := range users {
 		wg.Add(1)
 		userExistsMap[user["lol_account_id"].(string)] = true
-		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), 1610285111000)
+		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
 	}
 	wg.Wait()
 	wg = sync.WaitGroup{}
@@ -166,7 +174,7 @@ func PostLolHistoryUpdate(c *gin.Context) {
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @tags api/v1/lol/history
-// @Router /api/v1/lol/historys [get]
+// @Router /v1/lol/historys [get]
 func GetLolHistoryList(c *gin.Context) {
 	games := database.Instance.LOLHistory.GetList()
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"games": games}))
@@ -185,7 +193,7 @@ func GetLolHistoryList(c *gin.Context) {
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @tags api/v1/lol/history
-// @Router /api/v1/lol/history/{id} [get]
+// @Router /v1/lol/history/{id} [get]
 func GetLolHistory(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	history, err := database.Instance.LOLHistory.GetLolHistory(id)

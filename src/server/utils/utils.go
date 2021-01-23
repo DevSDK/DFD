@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/json"
+	"github.com/DevSDK/DFD/src/server/database"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"io/ioutil"
@@ -25,7 +26,9 @@ func RequestToRiotServer(endpoint string, params bson.M) (bson.M, int) {
 	if err != nil {
 		log.Print(err.Error())
 	}
-	req.Header.Set("X-Riot-Token", os.Getenv("RIOT_API_ACCESS"))
+	riot_access, _ := database.Instance.Redis.Get("riot-access-token")
+
+	req.Header.Set("X-Riot-Token", riot_access)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err.Error())

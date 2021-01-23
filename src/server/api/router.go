@@ -6,6 +6,5 @@ import (
 )
 
 func Initialize(router *gin.RouterGroup) {
-	v1API := router.Group("/api")
-	v1.Initialize(v1API)
+	v1.Initialize(router)
 }

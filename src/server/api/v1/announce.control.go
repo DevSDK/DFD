@@ -12,6 +12,25 @@ import (
 	"time"
 )
 
+// @Summary Get current announce list
+// @Description Get announce list greater then target-date from NOW sorted by creation time
+// @Description Permission : **announces.get**
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess{list=[]models.Announce} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/announce
+// @Router /v1/announces/current [get]
+func GetCurrentAnnounceList(c *gin.Context) {
+	list, _ := database.Instance.Announce.GetListWithTimestamp(time.Now().Unix())
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
+}
+
 // @Summary Get all announce list
 // @Description Get all announce list sorted by creation time
 // @Description Permission : **announces.get**
@@ -25,7 +44,7 @@ import (
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announces/all [get]
+// @Router /v1/announces/all [get]
 func GetAllAnnounceList(c *gin.Context) {
 	list, _ := database.Instance.Announce.GetList()
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
@@ -45,7 +64,7 @@ func GetAllAnnounceList(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announces/user/{id} [get]
+// @Router /v1/announces/user/{id} [get]
 func GetAnnounceList(c *gin.Context) {
 	idString := c.Param("id")
 	id, _ := primitive.ObjectIDFromHex(idString)
@@ -66,7 +85,7 @@ func GetAnnounceList(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announces/me [get]
+// @Router /v1/announces/me [get]
 func GetAnnounceListMe(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	list, _ := database.Instance.Announce.GetListByAuthorId(user.Id)
@@ -87,7 +106,7 @@ func GetAnnounceListMe(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announce [post]
+// @Router /v1/announce [post]
 func PostAnnounce(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	user := c.MustGet("user").(models.User)
@@ -121,7 +140,7 @@ func PostAnnounce(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"id": id}))
 }
 
-// @Summary Patch
+// @Summary Patch Announce
 // @Description Edit spcific announce written by me
 // @Description Permission : **announce.get**
 // @Accept  json
@@ -136,7 +155,7 @@ func PostAnnounce(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announce/{id} [patch]
+// @Router /v1/announce/{id} [patch]
 func PatchAnnounce(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	bodyMap := c.MustGet("bodymap").(bson.M)
@@ -181,7 +200,7 @@ func PatchAnnounce(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announce/{id} [get]
+// @Router /v1/announce/{id} [get]
 func GetAnnounce(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	res, err := database.Instance.Announce.GetAnnounceById(id)
@@ -206,7 +225,7 @@ func GetAnnounce(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/announce
-// @Router /api/v1/announce/{id} [delete]
+// @Router /v1/announce/{id} [delete]
 func DelAnnounce(c *gin.Context) {
 
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))

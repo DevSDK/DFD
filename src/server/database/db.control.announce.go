@@ -14,7 +14,7 @@ type AnnounceDB struct {
 	BaseDB
 }
 
-func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, limit int) ([]bson.M, error) {
+func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, timestamp int64) ([]bson.M, error) {
 	aggregateStages := bson.D{{"$project", bson.D{{"id", "$_id"},
 		{"_id", 0},
 		{"title", "$title"},
@@ -23,24 +23,30 @@ func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, limit int) ([]
 		{"created", "$created"},
 		{"modified", "$modified"},
 		{"target_date", "$target_date"}}}}
-	sortStage := bson.D{{"$sort", bson.M{"created": -1}}}
-	stages := mongo.Pipeline{aggregateStages, sortStage}
+	matchStage := bson.D{{"$match", bson.M{"target_date": bson.M{"$gt": time.Unix(timestamp, 64)}}}}
+	sortStage := bson.D{{"$sort", bson.M{"target_date": -1}}}
+	stages := mongo.Pipeline{aggregateStages, sortStage, matchStage}
+	log.Print(time.Unix(timestamp, 64))
 	if authorId != nil {
 		stages = append(stages, bson.D{{"$match", bson.D{{"author", *authorId}}}})
 	}
-	if limit > 0 {
-		stages = append(stages, bson.D{{"$limit", limit}})
-	}
+
+	result := []bson.M{}
 	cursor, err := db.collection.Aggregate(timeoutContext(), stages)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
+		return result, err
 	}
-	result := []bson.M{}
 	if err := cursor.All(timeoutContext(), &result); err != nil {
-		log.Fatal(err.Error())
+		log.Print(err.Error())
+		return result, err
 	}
 	return result, nil
 }
+func (db *AnnounceDB) GetListWithTimestamp(timestamp int64) ([]bson.M, error) {
+	return db.getListFromDB(nil, timestamp)
+}
+
 func (db *AnnounceDB) GetList() ([]bson.M, error) {
 	return db.getListFromDB(nil, 0)
 }

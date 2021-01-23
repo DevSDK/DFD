@@ -24,7 +24,7 @@ import (
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/state
-// @Router /api/v1/states/{id} [get]
+// @Router /v1/states/{id} [get]
 func GetStateHistory(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	list, _ := database.Instance.DFDHistory.GetList(id)
@@ -44,7 +44,7 @@ func GetStateHistory(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/state
-// @Router /api/v1/states [get]
+// @Router /v1/states [get]
 func GetOwnStateHistory(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
 	list, _ := database.Instance.DFDHistory.GetList(user.Id)
@@ -65,7 +65,7 @@ func GetOwnStateHistory(c *gin.Context) {
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @Security ApiKeyAuth
 // @tags api/v1/state
-// @Router /api/v1/state [post]
+// @Router /v1/state [post]
 func PostState(c *gin.Context) {
 	bodyMap := c.MustGet("bodymap").(bson.M)
 	user := c.MustGet("user").(models.User)

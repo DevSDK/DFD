@@ -55,5 +55,14 @@ type RequestBodyStatePost struct {
 	State string `json:"state" swaggertype:"string" example:"Working"`
 }
 
+type RequestBodyToken struct {
+	Token string `json:"token" example:"riot-api-access"`
+}
+
+type RequestBodyPatchUser struct {
+	Username     string `json:"username" example:"devsdk"`
+	ProfileImage string `json:"profile_image_id" example:"6006d3cc95f8c8e32d660c04"`
+}
+
 type RequestEmpty struct {
 }
