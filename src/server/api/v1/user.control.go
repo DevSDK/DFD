@@ -18,13 +18,13 @@ func createCommonUserMap(user models.User) gin.H {
 	}
 	return gin.H{
 		"id":            user.Id.Hex(),
+		"profile_image": user.ProfileImage.Hex(),
 		"email":         user.Email,
 		"state":         state,
 		"lol_name":      user.LolUsername,
 		"discord_id":    user.DiscordId,
 		"username":      user.Username,
 		"role":          user.Role,
-		"profile_image": user.ProfileImage,
 		"created":       user.Created,
 		"modified":      user.Modified,
 	}
@@ -77,6 +77,26 @@ func GetMe(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 
+
+// @Summary Get User List
+// @Description Get userlinst who is not guest.
+// @Description Permission : **user.get**
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess{user=[]primitive.ObjectID} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @Security ApiKeyAuth
+// @tags api/v1/user
+// @Router /v1/userlist [get]
+func GetUserList(c *gin.Context) {
+	result := database.Instance.User.GetUserList()
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
+}
+
 // @Summary Edit user information
 // @Description edit userfield.
 // @Description Permission : **user.patch**
@@ -115,7 +135,7 @@ func PatchUser(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("Image is not valid"))
 			return
 		}
-		utils.ApplySetElementStringSameTarget(setElement, bodyMap, "profile_image_id")
+		*setElement = append(*setElement, bson.E{Key:"profile_image_id", Value:imageId})
 	}
 	if err := database.Instance.User.UpdateById(user.Id, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))

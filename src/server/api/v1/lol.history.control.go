@@ -66,13 +66,15 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 
 		var participateId int
 		var win bool
+		names := []string{}
+		queueId := int64(respMap["queueId"].(float64))
 		for _, v := range respMap["participantIdentities"].([]interface{}) {
 			vMap := v.(map[string]interface{})
-			participaint := vMap["player"].(map[string]interface{})
-			accountId := participaint["accountId"].(string)
+			participants := vMap["player"].(map[string]interface{})
+			accountId := participants["accountId"].(string)
 			if userExists[accountId] {
 				participateId = int(vMap["participantId"].(float64))
-				break
+				names = append(names, participants["summonerName"].(string))
 			}
 		}
 		for _, v := range respMap["participants"].([]interface{}) {
@@ -85,7 +87,7 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 		}
 		timestamp := int64(respMap["gameCreation"].(float64))
 		mutex.Lock()
-		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp)
+		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameId, queueId,names)
 		(*results) = append((*results), id)
 		mutex.Unlock()
 		return
@@ -104,9 +106,8 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 // @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
-// @Security ApiKeyAuth
 // @tags api/v1/lol/history
-// @Router /v1/lol/history/updater [post]
+// @Router /v1/lol/history/updater [post] 
 func PostLolHistoryUpdate(c *gin.Context) {
 	response, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
 
@@ -145,8 +146,10 @@ func PostLolHistoryUpdate(c *gin.Context) {
 
 	for _, user := range users {
 		wg.Add(1)
-		userExistsMap[user["lol_account_id"].(string)] = true
-		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
+		if user["lol_account_id"].(string) != "" {
+			userExistsMap[user["lol_account_id"].(string)] = true
+			go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
+		}
 	}
 	wg.Wait()
 	wg = sync.WaitGroup{}
@@ -163,8 +166,8 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	return
 }
 
-// @Summary Update lol history
-// @Description Find game after the timestamp and store to DB
+// @Summary Get lol histories
+// @Description Get game histories
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} docmodels.ResponseSuccess{games=[]docmodels.ResponseLoLHistory} "success"
@@ -174,14 +177,33 @@ func PostLolHistoryUpdate(c *gin.Context) {
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @tags api/v1/lol/history
-// @Router /v1/lol/historys [get]
+// @Router /v1/lol/histories [get]
 func GetLolHistoryList(c *gin.Context) {
 	games := database.Instance.LOLHistory.GetList()
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"games": games}))
 	return
 }
 
-// @Summary Update lol history
+
+// @Summary Get game counts and win rate per date
+// @Description Game count per date and calculate win count by queue id
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} docmodels.ResponseSuccess{games=[]docmodels.ResponseDateLog} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @tags api/v1/lol/history
+// @Router /v1/lol/datelogs [get]
+func GetLolHistoryPerDate(c *gin.Context) {
+	games := database.Instance.LOLHistory.GetCountByDate()
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"data": games}))
+	return
+}
+
+// @Summary Get lol history
 // @Description Find game after the timestamp and store to DB
 // @Accept  json
 // @Produce  json

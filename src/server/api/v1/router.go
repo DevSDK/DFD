@@ -11,6 +11,7 @@ func Initialize(router *gin.RouterGroup) {
 	v1router.PATCH("/user/lol", middleware.AppAndJWTAuthMiddleware(false, "user.patch"), middleware.JsonParseMiddleware, PatchUserLolName)
 	v1router.GET("/user/:id", middleware.AppAndJWTAuthMiddleware(true, "user.get"), GetUser)
 	v1router.GET("/user", middleware.AppAndJWTAuthMiddleware(false, "user.get"), GetMe)
+	v1router.GET("/userlist", middleware.AppAndJWTAuthMiddleware(false, "user.get"), GetUserList)
 
 	v1router.GET("/images", middleware.AppAndJWTAuthMiddleware(true, "imagelist.get"), GetImageList)
 	v1router.POST("/image", middleware.AppAndJWTAuthMiddleware(false, "image.post"), middleware.JsonParseMiddleware, PostImage)
@@ -33,6 +34,7 @@ func Initialize(router *gin.RouterGroup) {
 	v1router.POST("/application/token", middleware.AppAndJWTAuthMiddleware(false, "admin.token.create"), PostAppicationToken)
 	v1router.PATCH("/application/riot/access", middleware.AppAndJWTAuthMiddleware(false, "admin.token.create"), middleware.JsonParseMiddleware, PatchRiotAccessToken)
 	v1router.POST("/lol/history/updater", middleware.VerifyApplicationTokenMiddleware, PostLolHistoryUpdate)
-	v1router.GET("/lol/historys", GetLolHistoryList)
+	v1router.GET("/lol/histories", GetLolHistoryList)
+	v1router.GET("/lol/datelogs", GetLolHistoryPerDate)
 	v1router.GET("/lol/history/:id", GetLolHistory)
 }

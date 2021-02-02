@@ -51,6 +51,27 @@ definitions:
         example: 400
         type: integer
     type: object
+  docmodels.ResponseDateLog:
+    properties:
+      count:
+        example: 4
+        type: integer
+      day:
+        example: 12
+        type: integer
+      month:
+        example: 2
+        type: integer
+      queueid:
+        example: 430
+        type: integer
+      win:
+        example: 2
+        type: integer
+      year:
+        example: 2021
+        type: integer
+    type: object
   docmodels.ResponseImageElement:
     properties:
       id:
@@ -74,6 +95,10 @@ definitions:
       id:
         example: 6006d3cc95f8c8e32d660c04
         type: string
+      participates:
+        items:
+          type: string
+        type: array
       timestamp:
         example: 1610811479544
         type: integer
@@ -161,7 +186,7 @@ definitions:
       modified:
         format: date-time
         type: string
-      profileImage:
+      profile_image:
         type: string
       role:
         type: string
@@ -198,6 +223,7 @@ info:
     ## Authentication
     Login is working with discord Oauth2.
     After login, the access and refresh token stored in Cookie.
+    You should get from the tokens via /token endpoint.
     However, all request takes access token in **Authorization** header for security.
     The access token is JWT statless token.
     Refresh token is stored and used cookie.
@@ -245,6 +271,12 @@ paths:
       - application/json
       description: 'Refresh access token token. REQUIRED: access and refresh JWT token
         in cookie.'
+      parameters:
+      - description: refresh token
+        in: header
+        name: X-Dfd-Refresh
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -264,6 +296,37 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Refresh token
+      tags:
+      - auth/
+  /auth/token:
+    get:
+      consumes:
+      - application/json
+      description: Return access and refresh token from cookie if it is valid.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            allOf:
+            - $ref: '#/definitions/docmodels.ResponseSuccess'
+            - properties:
+                access:
+                  type: string
+                refresh:
+                  type: string
+              type: object
+        "401":
+          description: Unauthorized Request. If token is expired, **token_expired**
+            filed must be set true
+          schema:
+            $ref: '#/definitions/docmodels.ResponseUnauthorized'
+        "404":
+          description: Cannt found user
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+      summary: Get access token and refresh
       tags:
       - auth/
   /v1/announce:
@@ -653,7 +716,7 @@ paths:
       consumes:
       - application/json
       description: |-
-        1st party application token.
+        Riot token updator (This api only available on "Riot development token". If I get application token, This endpoint will be deleted)
         Permission : **admin.token.create**
       parameters:
       - description: body
@@ -687,7 +750,7 @@ paths:
             $ref: '#/definitions/docmodels.ResponseInternalServerError'
       security:
       - ApiKeyAuth: []
-      summary: Create new application token
+      summary: Patch Riot Token
       tags:
       - api/v1/admin
   /v1/application/token:
@@ -914,6 +977,92 @@ paths:
       summary: Get my image list
       tags:
       - api/v1/image
+  /v1/lol/datelogs:
+    get:
+      consumes:
+      - application/json
+      description: Game count per date and calculate win count by queue id
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            allOf:
+            - $ref: '#/definitions/docmodels.ResponseSuccess'
+            - properties:
+                games:
+                  items:
+                    $ref: '#/definitions/docmodels.ResponseDateLog'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/docmodels.ResponseBadRequest'
+        "401":
+          description: Unauthorized Request. If token is expired, **token_expired**
+            filed must be set true
+          schema:
+            $ref: '#/definitions/docmodels.ResponseUnauthorized'
+        "403":
+          description: You don't have permission
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "404":
+          description: Cannt found user
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docmodels.ResponseInternalServerError'
+      summary: Get game counts and win rate per date
+      tags:
+      - api/v1/lol/history
+  /v1/lol/histories:
+    get:
+      consumes:
+      - application/json
+      description: Get game histories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            allOf:
+            - $ref: '#/definitions/docmodels.ResponseSuccess'
+            - properties:
+                games:
+                  items:
+                    $ref: '#/definitions/docmodels.ResponseLoLHistory'
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/docmodels.ResponseBadRequest'
+        "401":
+          description: Unauthorized Request. If token is expired, **token_expired**
+            filed must be set true
+          schema:
+            $ref: '#/definitions/docmodels.ResponseUnauthorized'
+        "403":
+          description: You don't have permission
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "404":
+          description: Cannt found user
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docmodels.ResponseInternalServerError'
+      summary: Get lol histories
+      tags:
+      - api/v1/lol/history
   /v1/lol/history/{id}:
     get:
       consumes:
@@ -958,7 +1107,7 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/docmodels.ResponseInternalServerError'
-      summary: Update lol history
+      summary: Get lol history
       tags:
       - api/v1/lol/history
   /v1/lol/history/updater:
@@ -986,51 +1135,6 @@ paths:
                 results:
                   items:
                     type: string
-                  type: array
-              type: object
-        "400":
-          description: Bad request
-          schema:
-            $ref: '#/definitions/docmodels.ResponseBadRequest'
-        "401":
-          description: Unauthorized Request. If token is expired, **token_expired**
-            filed must be set true
-          schema:
-            $ref: '#/definitions/docmodels.ResponseUnauthorized'
-        "403":
-          description: You don't have permission
-          schema:
-            $ref: '#/definitions/docmodels.ResponseNotFound'
-        "404":
-          description: Cannt found user
-          schema:
-            $ref: '#/definitions/docmodels.ResponseNotFound'
-        "500":
-          description: Internal Server Error
-          schema:
-            $ref: '#/definitions/docmodels.ResponseInternalServerError'
-      security:
-      - ApiKeyAuth: []
-      summary: Update lol history
-      tags:
-      - api/v1/lol/history
-  /v1/lol/historys:
-    get:
-      consumes:
-      - application/json
-      description: Find game after the timestamp and store to DB
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: success
-          schema:
-            allOf:
-            - $ref: '#/definitions/docmodels.ResponseSuccess'
-            - properties:
-                games:
-                  items:
-                    $ref: '#/definitions/docmodels.ResponseLoLHistory'
                   type: array
               type: object
         "400":
@@ -1397,6 +1501,53 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Patch LOL Information
+      tags:
+      - api/v1/user
+  /v1/userlist:
+    get:
+      consumes:
+      - application/json
+      description: |-
+        Get userlinst who is not guest.
+        Permission : **user.get**
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            allOf:
+            - $ref: '#/definitions/docmodels.ResponseSuccess'
+            - properties:
+                user:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/docmodels.ResponseBadRequest'
+        "401":
+          description: Unauthorized Request. If token is expired, **token_expired**
+            filed must be set true
+          schema:
+            $ref: '#/definitions/docmodels.ResponseUnauthorized'
+        "403":
+          description: You don't have permission
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "404":
+          description: Cannt found user
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docmodels.ResponseInternalServerError'
+      security:
+      - ApiKeyAuth: []
+      summary: Get User List
       tags:
       - api/v1/user
 securityDefinitions:

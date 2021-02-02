@@ -13,7 +13,7 @@ type ApplicationAuth struct {
 
 type User struct {
 	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	ProfileImage primitive.ObjectID `json: "profile_image" bson:"profile_image_id"`
+	ProfileImage primitive.ObjectID `json:"profile_image" bson:"profile_image_id"`
 	DiscordId    string             `json:"discord_id" bson:"discord_id,unique"`
 	Username     string             `bson:"username,omitempty"`
 	Email        string             `bson:"email,omitempty,unique" format:"email"`
@@ -36,9 +36,12 @@ type Role struct {
 
 type LOLHistory struct {
 	Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	GameId    string             `bson:gameid`
 	Game      bson.M             `bson:game`
 	Win       bool               `bson:win`
-	Timestamp int64              `bson:timestamp`
+	Timestamp time.Time          `bson:timestamp`
+	QueueId   int64 			 `bson:queueid`
+	Participants []string		 `bson:participants`
 	Created   time.Time          `bson:"created"`
 }
 

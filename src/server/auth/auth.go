@@ -10,4 +10,5 @@ func Initialize(router *gin.RouterGroup) {
 	authGroup.GET("/logout", Logout)
 	authGroup.GET("/redirect", Redirect)
 	authGroup.GET("/refresh", Refresh)
+	authGroup.GET("/token", Token)
 }

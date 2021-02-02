@@ -97,11 +97,70 @@ var doc = `{
                     "auth/"
                 ],
                 "summary": "Refresh token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "refresh token",
+                        "name": "X-Dfd-Refresh",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "success",
                         "schema": {
                             "$ref": "#/definitions/docmodels.ResponseSuccess"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/token": {
+            "get": {
+                "description": "Return access and refresh token from cookie if it is valid.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth/"
+                ],
+                "summary": "Get access token and refresh",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "access": {
+                                            "type": "string"
+                                        },
+                                        "refresh": {
+                                            "type": "string"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     },
                     "401": {
@@ -714,7 +773,7 @@ var doc = `{
                         "ApiKeyAuth": []
                     }
                 ],
-                "description": "1st party application token.\nPermission : **admin.token.create**",
+                "description": "Riot token updator (This api only available on \"Riot development token\". If I get application token, This endpoint will be deleted)\nPermission : **admin.token.create**",
                 "consumes": [
                     "application/json"
                 ],
@@ -724,7 +783,7 @@ var doc = `{
                 "tags": [
                     "api/v1/admin"
                 ],
-                "summary": "Create new application token",
+                "summary": "Patch Riot Token",
                 "parameters": [
                     {
                         "description": "body",
@@ -1111,13 +1170,144 @@ var doc = `{
                 }
             }
         },
+        "/v1/lol/datelogs": {
+            "get": {
+                "description": "Game count per date and calculate win count by queue id",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/lol/history"
+                ],
+                "summary": "Get game counts and win rate per date",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "games": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/docmodels.ResponseDateLog"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "403": {
+                        "description": "You don't have permission",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/lol/histories": {
+            "get": {
+                "description": "Get game histories",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/lol/history"
+                ],
+                "summary": "Get lol histories",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "games": {
+                                            "type": "array",
+                                            "items": {
+                                                "$ref": "#/definitions/docmodels.ResponseLoLHistory"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "403": {
+                        "description": "You don't have permission",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/lol/history/updater": {
             "post": {
-                "security": [
-                    {
-                        "ApiKeyAuth": []
-                    }
-                ],
                 "description": "Find game after the timestamp and store to DB\n**Application Token** is required.",
                 "consumes": [
                     "application/json"
@@ -1205,7 +1395,7 @@ var doc = `{
                 "tags": [
                     "api/v1/lol/history"
                 ],
-                "summary": "Update lol history",
+                "summary": "Get lol history",
                 "parameters": [
                     {
                         "type": "string",
@@ -1228,74 +1418,6 @@ var doc = `{
                                     "properties": {
                                         "game": {
                                             "type": "object"
-                                        }
-                                    }
-                                }
-                            ]
-                        }
-                    },
-                    "400": {
-                        "description": "Bad request",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
-                        }
-                    },
-                    "403": {
-                        "description": "You don't have permission",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseNotFound"
-                        }
-                    },
-                    "404": {
-                        "description": "Cannt found user",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseNotFound"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/lol/historys": {
-            "get": {
-                "description": "Find game after the timestamp and store to DB",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "api/v1/lol/history"
-                ],
-                "summary": "Update lol history",
-                "responses": {
-                    "200": {
-                        "description": "success",
-                        "schema": {
-                            "allOf": [
-                                {
-                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
-                                },
-                                {
-                                    "type": "object",
-                                    "properties": {
-                                        "games": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/definitions/docmodels.ResponseLoLHistory"
-                                            }
                                         }
                                     }
                                 }
@@ -1856,6 +1978,79 @@ var doc = `{
                     }
                 }
             }
+        },
+        "/v1/userlist": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Get userlinst who is not guest.\nPermission : **user.get**",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/user"
+                ],
+                "summary": "Get User List",
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "user": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "403": {
+                        "description": "You don't have permission",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1933,6 +2128,35 @@ var doc = `{
                 }
             }
         },
+        "docmodels.ResponseDateLog": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "integer",
+                    "example": 4
+                },
+                "day": {
+                    "type": "integer",
+                    "example": 12
+                },
+                "month": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "queueid": {
+                    "type": "integer",
+                    "example": 430
+                },
+                "win": {
+                    "type": "integer",
+                    "example": 2
+                },
+                "year": {
+                    "type": "integer",
+                    "example": 2021
+                }
+            }
+        },
         "docmodels.ResponseImageElement": {
             "type": "object",
             "properties": {
@@ -1965,6 +2189,12 @@ var doc = `{
                 "id": {
                     "type": "string",
                     "example": "6006d3cc95f8c8e32d660c04"
+                },
+                "participates": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 },
                 "timestamp": {
                     "type": "integer",
@@ -2091,7 +2321,7 @@ var doc = `{
                     "type": "string",
                     "format": "date-time"
                 },
-                "profileImage": {
+                "profile_image": {
                     "type": "string"
                 },
                 "role": {
@@ -2128,7 +2358,7 @@ var SwaggerInfo = swaggerInfo{
 	BasePath:    "/",
 	Schemes:     []string{},
 	Title:       "DFD API",
-	Description: "# This is a DFD server\nMost of api endpoints aim to restful.\n## Permissions\nAPI endpoints request a permission.\nIf not described, It is public API.\nPermissions are described below table:\n| Permission        | Description                         | Role               |\n|-------------------|-------------------------------------|--------------------|\n| user.patch        | Allows edit user information.       | Admin <br/> User   |\n| user.get          | Allows get user information         | Admin <br/> User   |\n| imagelist.get     |  Allows get own image list          | Admin <br /> User  |\n| image.post        | Allows image upload                 | Admin  <br /> User |\n| image.delete      | Allows image delete                 | Admin  <br /> User |\n| states.get        | Allows get states history           | Admin  <br /> User |\n| states.post       | Allows create states                | Admin  <br /> User |\n| announces.get     | Allows get states announce list     | Admin  <br /> User |\n| announce.post     | Allows create announce              | Admin  <br /> User |\n| announce.get      | Allows get announce                 | Admin  <br /> User |\n| announce.delete   | Allows delete my announce           | Admin  <br /> User |\n| announce.patch    | Allows patch announce               | Admin  <br /> User |\n| admin.token.create| Allows create and patch admin token | Admin              |\n## Authentication\nLogin is working with discord Oauth2.\nAfter login, the access and refresh token stored in Cookie.\nHowever, all request takes access token in **Authorization** header for security.\nThe access token is JWT statless token.\nRefresh token is stored and used cookie.",
+	Description: "# This is a DFD server\nMost of api endpoints aim to restful.\n## Permissions\nAPI endpoints request a permission.\nIf not described, It is public API.\nPermissions are described below table:\n| Permission        | Description                         | Role               |\n|-------------------|-------------------------------------|--------------------|\n| user.patch        | Allows edit user information.       | Admin <br/> User   |\n| user.get          | Allows get user information         | Admin <br/> User   |\n| imagelist.get     |  Allows get own image list          | Admin <br /> User  |\n| image.post        | Allows image upload                 | Admin  <br /> User |\n| image.delete      | Allows image delete                 | Admin  <br /> User |\n| states.get        | Allows get states history           | Admin  <br /> User |\n| states.post       | Allows create states                | Admin  <br /> User |\n| announces.get     | Allows get states announce list     | Admin  <br /> User |\n| announce.post     | Allows create announce              | Admin  <br /> User |\n| announce.get      | Allows get announce                 | Admin  <br /> User |\n| announce.delete   | Allows delete my announce           | Admin  <br /> User |\n| announce.patch    | Allows patch announce               | Admin  <br /> User |\n| admin.token.create| Allows create and patch admin token | Admin              |\n## Authentication\nLogin is working with discord Oauth2.\nAfter login, the access and refresh token stored in Cookie.\nYou should get from the tokens via /token endpoint.\nHowever, all request takes access token in **Authorization** header for security.\nThe access token is JWT statless token.\nRefresh token is stored and used cookie.",
 }
 
 type s struct{}
