@@ -77,7 +77,7 @@ func (db *UserDB) GetLoLInfoList() []bson.M {
 
 func (db *UserDB) GetUserList() []primitive.ObjectID {
 	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"}}}}
-	matchStage := bson.D{{"$match", bson.D{{"role", bson.D{{"$ne","guest"}}}}}}
+	matchStage := bson.D{{"$match", bson.D{{"role", bson.D{{"$ne", "guest"}}}}}}
 	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{aggregateStage, matchStage})
 	resultFromDB := []bson.M{}
 	result := []primitive.ObjectID{}

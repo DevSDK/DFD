@@ -36,21 +36,20 @@ type ResponseImageElement struct {
 }
 
 type ResponseLoLHistory struct {
-	Id        string `json:"id" example:"6006d3cc95f8c8e32d660c04"`
-	Timestamp string `json:"timestamp" swaggertype:"integer" example:"1610811479544"`
-	Win       bool   `json:"win" swaggertype:"boolean" example:"true"`
-	Participates       []string   `json:"participates"`
+	Id           string   `json:"id" example:"6006d3cc95f8c8e32d660c04"`
+	Timestamp    string   `json:"timestamp" swaggertype:"integer" example:"1610811479544"`
+	Win          bool     `json:"win" swaggertype:"boolean" example:"true"`
+	Participates []string `json:"participates"`
 }
 
 type ResponseDateLog struct {
-	Count    int      `json:"count" example:"4"`
-	Year     int      `json:"year" example:"2021"`
-	Month    int      `json:"month" example:"2"`
-	Day      int      `json:"day" example:"12"`
-	QueueId  int      `json:"queueid" example:"430"`
-	Win      int      `json:"win" example:"2"`
+	Count   int `json:"count" example:"4"`
+	Year    int `json:"year" example:"2021"`
+	Month   int `json:"month" example:"2"`
+	Day     int `json:"day" example:"12"`
+	QueueId int `json:"queueid" example:"430"`
+	Win     int `json:"win" example:"2"`
 }
-
 
 type RequestBodyAnnouncePost struct {
 	Title       string `json:"title" example:"Title"`

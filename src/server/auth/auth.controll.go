@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
 	"encoding/json"
 	"fmt"
 	_ "github.com/DevSDK/DFD/src/server/api/v1/docmodels"
@@ -11,6 +10,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"io/ioutil"
 	"log"
@@ -171,10 +171,16 @@ func Refresh(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
-	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"access":newAccessToken}))
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"access": newAccessToken}))
 }
 
 func Redirect(c *gin.Context) {
+	queryError := c.Query("error")
+
+	if queryError != "" {
+		c.JSON(http.StatusUnauthorized, utils.CreateUnauthorizedJSONMessage(c.Query("error_description"), false))
+		return
+	}
 	DISCORD_CLIENT_ID := os.Getenv("DISCORD_CLIENT_ID")
 	DISCORD_REDIRECT_URI := os.Getenv("DISCORD_REDIRECT_URI")
 	DISCORD_SECRET_ID := os.Getenv("DISCORD_SECRET_ID")
@@ -186,7 +192,7 @@ func Redirect(c *gin.Context) {
 			"client_secret": {DISCORD_SECRET_ID},
 			"redirect_uri":  {DISCORD_REDIRECT_URI},
 			"grant_type":    {"authorization_code"}})
-	if  err != nil {
+	if err != nil {
 		log.Print(err.Error())
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
@@ -199,7 +205,7 @@ func Redirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
-	
+
 	bearer := "Bearer " + accessMap["access_token"].(string)
 	//Reqeust user information to discord server
 	userInfoRequest, err := http.NewRequest("GET", DISCORD_API_BASE+"/users/@me", nil)
@@ -222,7 +228,7 @@ func Redirect(c *gin.Context) {
 		return
 	}
 	userMap["tokenString"] = string(accessMap["refresh_token"].(string))
-	
+
 	user := checkAndInsertUser(userMap)
 	accessToken, err := CreateAccessToken(user)
 	if err != nil {
@@ -245,7 +251,6 @@ func Redirect(c *gin.Context) {
 	c.SetCookie("refresh", refreshToken, 0, BASE_URL, SERVER_URI, false, true)
 	c.Redirect(http.StatusFound, REDIRECT_URL)
 }
-
 
 // @Summary Get access token and refresh
 // @Description Return access and refresh token from cookie if it is valid.
@@ -297,5 +302,5 @@ func Token(c *gin.Context) {
 	}
 	c.SetCookie("access", accessToken, -1, BASE_URL, SERVER_URI, false, true)
 	c.SetCookie("refresh", refreshToken, -1, BASE_URL, SERVER_URI, false, true)
-	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"access":accessToken, "refresh":refreshToken}))
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"access": accessToken, "refresh": refreshToken}))
 }

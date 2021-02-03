@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/DevSDK/DFD/src/server/middleware"
 	_ "github.com/DevSDK/DFD/docs/v1"
 	"github.com/DevSDK/DFD/src/server/api"
 	"github.com/DevSDK/DFD/src/server/auth"
+	"github.com/DevSDK/DFD/src/server/middleware"
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"

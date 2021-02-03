@@ -77,7 +77,6 @@ func GetMe(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 
-
 // @Summary Get User List
 // @Description Get userlinst who is not guest.
 // @Description Permission : **user.get**
@@ -135,7 +134,7 @@ func PatchUser(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("Image is not valid"))
 			return
 		}
-		*setElement = append(*setElement, bson.E{Key:"profile_image_id", Value:imageId})
+		*setElement = append(*setElement, bson.E{Key: "profile_image_id", Value: imageId})
 	}
 	if err := database.Instance.User.UpdateById(user.Id, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))

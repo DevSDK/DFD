@@ -24,7 +24,6 @@ func parseMatchesToIdArray(bodyMap bson.M) []string {
 }
 
 func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[string]int32, accountId string, timestamp int64) {
-	log.Print(timestamp)
 	for i := 1; i <= 3600; i++ {
 		defer (*wg).Done()
 		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matchlists/by-account/"+accountId,
@@ -63,7 +62,7 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 			log.Print(respMap)
 			return
 		}
-
+		log.Print(respMap)
 		var participateId int
 		var win bool
 		names := []string{}
@@ -87,7 +86,7 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 		}
 		timestamp := int64(respMap["gameCreation"].(float64))
 		mutex.Lock()
-		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameId, queueId,names)
+		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameId, queueId, names)
 		(*results) = append((*results), id)
 		mutex.Unlock()
 		return
@@ -107,7 +106,7 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 // @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
 // @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
 // @tags api/v1/lol/history
-// @Router /v1/lol/history/updater [post] 
+// @Router /v1/lol/history/updater [post]
 func PostLolHistoryUpdate(c *gin.Context) {
 	response, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
 
@@ -145,11 +144,13 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	mutex := sync.Mutex{}
 
 	for _, user := range users {
-		wg.Add(1)
-		if user["lol_account_id"].(string) != "" {
-			userExistsMap[user["lol_account_id"].(string)] = true
-			go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
+		if user["lol_account_id"].(string) == "" {
+			continue
 		}
+		wg.Add(1)
+		userExistsMap[user["lol_account_id"].(string)] = true
+		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
+
 	}
 	wg.Wait()
 	wg = sync.WaitGroup{}
@@ -183,7 +184,6 @@ func GetLolHistoryList(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"games": games}))
 	return
 }
-
 
 // @Summary Get game counts and win rate per date
 // @Description Game count per date and calculate win count by queue id

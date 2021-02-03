@@ -35,14 +35,14 @@ type Role struct {
 }
 
 type LOLHistory struct {
-	Id        primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	GameId    string             `bson:gameid`
-	Game      bson.M             `bson:game`
-	Win       bool               `bson:win`
-	Timestamp time.Time          `bson:timestamp`
-	QueueId   int64 			 `bson:queueid`
-	Participants []string		 `bson:participants`
-	Created   time.Time          `bson:"created"`
+	Id           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	GameId       string             `bson:gameid`
+	Game         bson.M             `bson:game`
+	Win          bool               `bson:win`
+	Timestamp    time.Time          `bson:timestamp`
+	QueueId      int64              `bson:queueid`
+	Participants []string           `bson:participants`
+	Created      time.Time          `bson:"created"`
 }
 
 type DFDHistory struct {
