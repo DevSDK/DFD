@@ -123,8 +123,9 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	}
 
 	timeString, err := database.Instance.Redis.Get("UpdateTimestamp")
+	loc, _ := time.LoadLocation("Asia/Seoul")
 	if err != nil {
-		timeString = time.Now().Format(time.RFC3339)
+		timeString = time.Now().In(loc).Format(time.RFC3339)
 	}
 
 	t, err := time.Parse(time.RFC3339, timeString)
@@ -135,7 +136,7 @@ func PostLolHistoryUpdate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
-	database.Instance.Redis.Set("UpdateTimestamp", time.Now().Format(time.RFC3339))
+	database.Instance.Redis.Set("UpdateTimestamp", time.Now().In(loc).Format(time.RFC3339))
 
 	users := database.Instance.User.GetLoLInfoList()
 	userExistsMap := map[string]bool{}
