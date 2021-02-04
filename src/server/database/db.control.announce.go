@@ -10,11 +10,12 @@ import (
 	"time"
 )
 
+//AnnounceDB is a structure for announce data access
 type AnnounceDB struct {
 	BaseDB
 }
 
-func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, timestamp int64) ([]bson.M, error) {
+func (db *AnnounceDB) getListFromDB(authorID *primitive.ObjectID, timestamp int64) ([]bson.M, error) {
 	aggregateStages := bson.D{{"$project", bson.D{{"id", "$_id"},
 		{"_id", 0},
 		{"title", "$title"},
@@ -27,8 +28,8 @@ func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, timestamp int6
 	sortStage := bson.D{{"$sort", bson.M{"target_date": -1}}}
 	stages := mongo.Pipeline{aggregateStages, sortStage, matchStage}
 	log.Print(time.Unix(timestamp, 64))
-	if authorId != nil {
-		stages = append(stages, bson.D{{"$match", bson.D{{"author", *authorId}}}})
+	if authorID != nil {
+		stages = append(stages, bson.D{{"$match", bson.D{{"author", *authorID}}}})
 	}
 
 	result := []bson.M{}
@@ -43,19 +44,24 @@ func (db *AnnounceDB) getListFromDB(authorId *primitive.ObjectID, timestamp int6
 	}
 	return result, nil
 }
+
+//GetListWithTimestamp function returns announces after given timestamp
 func (db *AnnounceDB) GetListWithTimestamp(timestamp int64) ([]bson.M, error) {
 	return db.getListFromDB(nil, timestamp)
 }
 
+//GetList returns all anounces
 func (db *AnnounceDB) GetList() ([]bson.M, error) {
 	return db.getListFromDB(nil, 0)
 }
 
-func (db *AnnounceDB) GetListByAuthorId(authorId primitive.ObjectID) ([]bson.M, error) {
-	return db.getListFromDB(&authorId, 0)
+//GetListByAuthorID returns annoucnes written by gicen user id
+func (db *AnnounceDB) GetListByAuthorID(authorID primitive.ObjectID) ([]bson.M, error) {
+	return db.getListFromDB(&authorID, 0)
 }
 
-func (db *AnnounceDB) GetAnnounceById(id primitive.ObjectID) (bson.M, error) {
+//GetAnnounceByID returns announce written by gicen announce id
+func (db *AnnounceDB) GetAnnounceByID(id primitive.ObjectID) (bson.M, error) {
 	result := []bson.M{}
 	matchStage := bson.D{{"$match", bson.D{{"_id", id}}}}
 	aggregateStages := bson.D{{"$project", bson.D{{"id", "$_id"},
@@ -82,10 +88,11 @@ func (db *AnnounceDB) GetAnnounceById(id primitive.ObjectID) (bson.M, error) {
 	return result[0], nil
 }
 
-func (db *AnnounceDB) AddAnnounce(authorId primitive.ObjectID, announceMap bson.M) (primitive.ObjectID, error) {
+//AddAnnounce add announce into database
+func (db *AnnounceDB) AddAnnounce(authorID primitive.ObjectID, announceMap bson.M) (primitive.ObjectID, error) {
 
 	announce := models.Announce{
-		AuthorId:    authorId,
+		AuthorID:    authorID,
 		Title:       announceMap["title"].(string),
 		Description: announceMap["description"].(string),
 		TargetDate:  announceMap["target_date"].(time.Time),
@@ -96,7 +103,8 @@ func (db *AnnounceDB) AddAnnounce(authorId primitive.ObjectID, announceMap bson.
 	return res.InsertedID.(primitive.ObjectID), err
 }
 
-func (db *AnnounceDB) UpdateAnnounceById(id primitive.ObjectID, userId primitive.ObjectID, setElement *bson.D) error {
+//UpdateAnnounceByID update announce by announce id
+func (db *AnnounceDB) UpdateAnnounceByID(id primitive.ObjectID, userID primitive.ObjectID, setElement *bson.D) error {
 	if len(*setElement) > 0 {
 		*setElement = append(*setElement, bson.E{"modified", time.Now()})
 	}
@@ -107,7 +115,8 @@ func (db *AnnounceDB) UpdateAnnounceById(id primitive.ObjectID, userId primitive
 	return err
 }
 
-func (db *AnnounceDB) DeleteAnnounceById(id primitive.ObjectID, userId primitive.ObjectID) error {
-	_, err := db.collection.DeleteOne(timeoutContext(), bson.M{"$and": []bson.M{{"_id": id}, {"author": userId}}})
+//DeleteAnnounceByID delete announce by announce id
+func (db *AnnounceDB) DeleteAnnounceByID(id primitive.ObjectID, userID primitive.ObjectID) error {
+	_, err := db.collection.DeleteOne(timeoutContext(), bson.M{"$and": []bson.M{{"_id": id}, {"author": userID}}})
 	return err
 }

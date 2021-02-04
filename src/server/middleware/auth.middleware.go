@@ -10,6 +10,7 @@ import (
 	"os"
 )
 
+//AppAndJWTAuthMiddleware middleware for authentication
 func AppAndJWTAuthMiddleware(isApplicationAllowed bool, permissions ...string) gin.HandlerFunc {
 	contains := func(src []string, dst []string) bool {
 		ret := true
@@ -56,8 +57,8 @@ func AppAndJWTAuthMiddleware(isApplicationAllowed bool, permissions ...string) g
 			c.Abort()
 			return
 		}
-		userId, _ := primitive.ObjectIDFromHex((*claims)["id"].(string))
-		user, err := database.Instance.User.FindById(userId)
+		userID, _ := primitive.ObjectIDFromHex((*claims)["id"].(string))
+		user, err := database.Instance.User.FindByID(userID)
 		if err != nil {
 			c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found user"))
 			c.Abort()

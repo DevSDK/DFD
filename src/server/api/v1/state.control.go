@@ -10,6 +10,7 @@ import (
 	"net/http"
 )
 
+// GetStateHistory is handler for endpoint GET /states/{id}
 // @Summary Get state history
 // @Description Get user's state change history
 // @Description Permission : **states.get**
@@ -31,6 +32,7 @@ func GetStateHistory(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"history": list}))
 }
 
+// GetOwnStateHistory is handler for endpoint GET /states
 // @Summary Get my state history
 // @Description Get my state change history
 // @Description Permission : **states.get**
@@ -47,11 +49,11 @@ func GetStateHistory(c *gin.Context) {
 // @Router /v1/states [get]
 func GetOwnStateHistory(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
-	list, _ := database.Instance.DFDHistory.GetList(user.Id)
+	list, _ := database.Instance.DFDHistory.GetList(user.ID)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"history": list}))
 }
 
-// @Summary Create state
+// PostState is handler for endpoint POST /state
 // @Description Create state
 // @Description Permission : **states.post**
 // @Accept  json
@@ -79,6 +81,6 @@ func PostState(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("state field must be string"))
 		return
 	}
-	database.Instance.DFDHistory.Push(user.Id, stateStromg)
+	database.Instance.DFDHistory.Push(user.ID, stateStromg)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }

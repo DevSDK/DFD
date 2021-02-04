@@ -12,12 +12,15 @@ import (
 	"time"
 )
 
+//Instance for singleton
 var Instance = DBInstance{}
 
+//BaseDB for DB class
 type BaseDB struct {
 	collection *mongo.Collection
 }
 
+//DBInstance data structure for singlethon
 type DBInstance struct {
 	mongoClient      *mongo.Client
 	redisClient      *redis.Client
@@ -102,6 +105,7 @@ func initializeRedis() error {
 	return err
 }
 
+//Initialize database
 func Initialize() error {
 	if err := initializeMongoDB(); err != nil {
 		return err
@@ -113,6 +117,7 @@ func Initialize() error {
 	return nil
 }
 
+//Disconnect database
 func Disconnect() {
 	Instance.mongoClient.Disconnect(timeoutContext())
 }

@@ -13,20 +13,20 @@ import (
 	"time"
 )
 
-func parseMatchesToIdArray(bodyMap bson.M) []string {
+func parseMatchesToIDArray(bodyMap bson.M) []string {
 	res := []string{}
 	for _, match := range bodyMap["matches"].([]interface{}) {
-		gameRawId := match.(map[string]interface{})["gameId"]
-		id := strconv.Itoa(int(gameRawId.(float64)))
+		gameRawID := match.(map[string]interface{})["gameId"]
+		id := strconv.Itoa(int(gameRawID.(float64)))
 		res = append(res, id)
 	}
 	return res
 }
 
-func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[string]int32, accountId string, timestamp int64) {
+func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[string]int32, accountID string, timestamp int64) {
 	for i := 1; i <= 3600; i++ {
 		defer (*wg).Done()
-		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matchlists/by-account/"+accountId,
+		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matchlists/by-account/"+accountID,
 			bson.M{"beginTime": strconv.FormatInt(timestamp, 10)})
 		if respCode == 429 {
 			log.Print("RateLimit exceded")
@@ -37,20 +37,20 @@ func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[strin
 			log.Print("RIOT SERVER RESPONSE AS " + strconv.Itoa(respCode))
 			return
 		}
-		array := parseMatchesToIdArray(respMap)
+		array := parseMatchesToIDArray(respMap)
 		for _, id := range array {
 			(*mutex).Lock()
-			(*countMap)[id] += 1
+			(*countMap)[id]++
 			(*mutex).Unlock()
 		}
 		return
 	}
 }
 
-func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, userExists map[string]bool, results *[]primitive.ObjectID) {
+func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, userExists map[string]bool, results *[]primitive.ObjectID) {
 	defer (*wg).Done()
 	for i := 1; i <= 3600; i++ {
-		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matches/"+gameId, nil)
+		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matches/"+gameID, nil)
 		if respCode == 429 {
 			log.Print("RateLimit exceded")
 			log.Print(respMap)
@@ -63,36 +63,37 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameId string, u
 			return
 		}
 		log.Print(respMap)
-		var participateId int
+		var participateID int
 		var win bool
 		names := []string{}
-		queueId := int64(respMap["queueId"].(float64))
+		queueID := int64(respMap["queueId"].(float64))
 		for _, v := range respMap["participantIdentities"].([]interface{}) {
 			vMap := v.(map[string]interface{})
 			participants := vMap["player"].(map[string]interface{})
-			accountId := participants["accountId"].(string)
-			if userExists[accountId] {
-				participateId = int(vMap["participantId"].(float64))
+			accountID := participants["accountId"].(string)
+			if userExists[accountID] {
+				participateID = int(vMap["participantId"].(float64))
 				names = append(names, participants["summonerName"].(string))
 			}
 		}
 		for _, v := range respMap["participants"].([]interface{}) {
 			vMap := v.(map[string]interface{})
 			id := int(vMap["participantId"].(float64))
-			if id == participateId {
+			if id == participateID {
 				stats := vMap["stats"].(map[string]interface{})
 				win = stats["win"].(bool)
 			}
 		}
 		timestamp := int64(respMap["gameCreation"].(float64))
 		mutex.Lock()
-		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameId, queueId, names)
+		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameID, queueID, names)
 		(*results) = append((*results), id)
 		mutex.Unlock()
 		return
 	}
 }
 
+// PostLolHistoryUpdate is handler for endpoint POST /lol/history/updater
 // @Summary Update lol history
 // @Description Find game after the timestamp and store to DB
 // @Description **Application Token** is required.
@@ -168,6 +169,7 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	return
 }
 
+// GetLolHistoryList is handler for endpoint GET /lol/histories
 // @Summary Get lol histories
 // @Description Get game histories
 // @Accept  json
@@ -186,6 +188,7 @@ func GetLolHistoryList(c *gin.Context) {
 	return
 }
 
+// GetLolHistoryPerDate is handler for endpoint GET /lol/datelogs
 // @Summary Get game counts and win rate per date
 // @Description Game count per date and calculate win count by queue id
 // @Accept  json
@@ -204,6 +207,7 @@ func GetLolHistoryPerDate(c *gin.Context) {
 	return
 }
 
+// GetLolHistory is handler for endpoint GET /lol/history/{id}
 // @Summary Get lol history
 // @Description Find game after the timestamp and store to DB
 // @Accept  json

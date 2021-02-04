@@ -20,7 +20,7 @@ var doc = `{
         "title": "{{.Title}}",
         "contact": {
             "name": "Seokho Song",
-            "url": "http://github.com/devsdkGIN_MODE"
+            "url": "http://github.com/devsdk"
         },
         "license": {
             "url": "https://opensource.org/licenses/MIT"
@@ -1474,7 +1474,6 @@ var doc = `{
                 "tags": [
                     "api/v1/state"
                 ],
-                "summary": "Create state",
                 "parameters": [
                     {
                         "description": "Create user state",
@@ -2252,7 +2251,7 @@ var doc = `{
         "models.Announce": {
             "type": "object",
             "properties": {
-                "authorId": {
+                "authorID": {
                     "type": "string",
                     "example": "5c06bc289b9bdd2381263063"
                 },

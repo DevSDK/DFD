@@ -28,6 +28,7 @@ func checkAndInsertUser(userMap bson.M) models.User {
 	return user
 }
 
+//CreateDiscordOauthURI returns discord oauth2 url
 func CreateDiscordOauthURI() string {
 	DISCORD_CLIENT_ID := os.Getenv("DISCORD_CLIENT_ID")
 	DISCORD_REDIRECT_URI := os.Getenv("DISCORD_REDIRECT_URI")
@@ -48,16 +49,18 @@ func createToken(atClaims jwt.MapClaims) (string, error) {
 	}
 }
 
+//CreateAccessToken returns jwt access token with Claims
 func CreateAccessToken(user models.User) (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
-	atClaims["id"] = user.Id.Hex()
+	atClaims["id"] = user.ID.Hex()
 	atClaims["email"] = user.Email
 	atClaims["exp"] = time.Now().Add(time.Minute * 60).Unix()
 	token, err := createToken(atClaims)
 	return token, err
 }
 
+//CreateRefreshToken returns jwt refresh token with Claims
 func CreateRefreshToken() (string, error) {
 	atClaims := jwt.MapClaims{}
 	atClaims["authorized"] = true
@@ -67,6 +70,7 @@ func CreateRefreshToken() (string, error) {
 	return token, err
 }
 
+// Login is handler for endpoint GET /auth/login
 // @Summary Login
 // @Description Redirect to discord Oauth2 login page
 // @Accept  json
@@ -78,6 +82,7 @@ func Login(c *gin.Context) {
 	c.Redirect(http.StatusFound, url)
 }
 
+// Logout is handler for endpoint GET /auth/logout
 // @Summary Logout
 // @Description Delete access token and refresh token from cookie. And register the refresh token into blacklist
 // @Accept  json
@@ -113,6 +118,7 @@ func Logout(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
+// Refresh is handler for endpoint GET /auth/refresh
 // @Summary Refresh token
 // @Description Refresh access token token. REQUIRED: access and refresh JWT token in cookie.
 // @Accept  json
@@ -163,7 +169,7 @@ func Refresh(c *gin.Context) {
 	}
 
 	userid, _ := primitive.ObjectIDFromHex(useridHex)
-	user, err := database.Instance.User.FindById(userid)
+	user, err := database.Instance.User.FindByID(userid)
 
 	newAccessToken, err := CreateAccessToken(user)
 	if err != nil {
@@ -174,6 +180,7 @@ func Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"access": newAccessToken}))
 }
 
+// Redirect is handler for endpoint GET /auth/redirect
 func Redirect(c *gin.Context) {
 	queryError := c.Query("error")
 
@@ -242,7 +249,7 @@ func Redirect(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
-	database.Instance.Redis.Set(user.Id.Hex(), refreshToken)
+	database.Instance.Redis.Set(user.ID.Hex(), refreshToken)
 	SERVER_URI := os.Getenv("SERVER_URI")
 	BASE_URL := os.Getenv("BASE_URL")
 
@@ -252,6 +259,7 @@ func Redirect(c *gin.Context) {
 	c.Redirect(http.StatusFound, REDIRECT_URL)
 }
 
+// Token is handler for endpoint GET /auth/token
 // @Summary Get access token and refresh
 // @Description Return access and refresh token from cookie if it is valid.
 // @Accept  json
@@ -293,8 +301,8 @@ func Token(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	userId, _ := primitive.ObjectIDFromHex((*claims)["id"].(string))
-	_, err = database.Instance.User.FindById(userId)
+	userID, _ := primitive.ObjectIDFromHex((*claims)["id"].(string))
+	_, err = database.Instance.User.FindByID(userID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found user"))
 		c.Abort()

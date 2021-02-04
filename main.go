@@ -40,7 +40,7 @@ import (
 // @description The access token is JWT statless token.
 // @description Refresh token is stored and used cookie.
 // @contact.name Seokho Song
-// @contact.url http://github.com/devsdkGIN_MODE
+// @contact.url http://github.com/devsdk
 // @license.url https://opensource.org/licenses/MIT
 // @host devsdk.net/api/dfd
 // @BasePath /

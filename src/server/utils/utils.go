@@ -11,6 +11,7 @@ import (
 	"os"
 )
 
+//RequestToRiotServer function request to riot server
 func RequestToRiotServer(endpoint string, params bson.M) (bson.M, int) {
 	client := &http.Client{}
 	RIOT_URL := os.Getenv("RIOT_API_URI")
@@ -26,9 +27,9 @@ func RequestToRiotServer(endpoint string, params bson.M) (bson.M, int) {
 	if err != nil {
 		log.Print(err.Error())
 	}
-	riot_access, _ := database.Instance.Redis.Get("riot-access-token")
+	riotAccess, _ := database.Instance.Redis.Get("riot-access-token")
 
-	req.Header.Set("X-Riot-Token", riot_access)
+	req.Header.Set("X-Riot-Token", riotAccess)
 	resp, err := client.Do(req)
 	if err != nil {
 		log.Fatal(err.Error())
@@ -46,10 +47,12 @@ func RequestToRiotServer(endpoint string, params bson.M) (bson.M, int) {
 	return resultMap, resp.StatusCode
 }
 
+//ApplySetElementStringSameTarget function to create database set field for same body key and target
 func ApplySetElementStringSameTarget(setElement *bson.D, updateMap bson.M, target string) bool {
 	return ApplySetElementString(setElement, updateMap, target, target)
 }
 
+//ApplySetElementString function to create database set field for different body key and target
 func ApplySetElementString(setElement *bson.D, updateMap bson.M, updateMapTarget string, dbTarget string) bool {
 	if updateMap[updateMapTarget] != nil {
 		*setElement = append(*setElement, bson.E{Key: dbTarget, Value: updateMap[updateMapTarget]})
@@ -58,6 +61,7 @@ func ApplySetElementString(setElement *bson.D, updateMap bson.M, updateMapTarget
 	return false
 }
 
+//CreateSuccessJSONMessage generates success response object
 func CreateSuccessJSONMessage(data gin.H) gin.H {
 	result := gin.H{"message": "success", "status": http.StatusOK}
 	if data != nil {
@@ -68,26 +72,31 @@ func CreateSuccessJSONMessage(data gin.H) gin.H {
 	return result
 }
 
+//CreateBadRequestJSONMessage generates bad request response object
 func CreateBadRequestJSONMessage(message string) gin.H {
 	result := gin.H{"message": message, "status": http.StatusBadRequest}
 	return result
 }
 
+//CreateForbbidnJSONMessage generates forbbiden response object
 func CreateForbbidnJSONMessage(message string) gin.H {
 	result := gin.H{"message": message, "status": http.StatusForbidden}
 	return result
 }
 
+//CreateUnauthorizedJSONMessage generates unauthorized response object
 func CreateUnauthorizedJSONMessage(message string, isExpired bool) gin.H {
 	result := gin.H{"message": message, "status": http.StatusUnauthorized, "token_expired": isExpired}
 	return result
 }
 
+//CreateNotFoundJSONMessage generates not found response object
 func CreateNotFoundJSONMessage(message string) gin.H {
 	result := gin.H{"message": message, "status": http.StatusNotFound}
 	return result
 }
 
+//CreateInternalServerErrorJSONMessage generates server error response object
 func CreateInternalServerErrorJSONMessage() gin.H {
 	result := gin.H{"message": "Internal Server Error", "status": http.StatusInternalServerError}
 	return result

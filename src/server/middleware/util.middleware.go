@@ -12,7 +12,8 @@ import (
 	"os"
 )
 
-func JsonParseMiddleware(c *gin.Context) {
+//JSONBodyParseMiddleware is body json parse middleware
+func JSONBodyParseMiddleware(c *gin.Context) {
 	body, err := ioutil.ReadAll(c.Request.Body)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("body is required"))
@@ -29,6 +30,7 @@ func JsonParseMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+//VerifyApplicationTokenMiddleware verify given application token
 func VerifyApplicationTokenMiddleware(c *gin.Context) {
 	tokenString := c.Request.Header["X-Dfd-App-Auth"]
 	if tokenString == nil {
@@ -46,6 +48,7 @@ func VerifyApplicationTokenMiddleware(c *gin.Context) {
 	c.Next()
 }
 
+//CORSMiddleware append cros headers
 func CORSMiddleware(c *gin.Context) {
 	if os.Getenv("GIN_MODE") != "release" {
 		c.Header("Access-Control-Allow-Origin", "http://localhost:3000")

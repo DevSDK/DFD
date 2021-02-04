@@ -9,14 +9,16 @@ import (
 	"time"
 )
 
+//UserDB data structure for user
 type UserDB struct {
 	BaseDB
 }
 
+//Register user into user db
 func (db *UserDB) Register(userMap bson.M) (models.User, error) {
 	tokenString := userMap["tokenString"].(string)
 	user := models.User{
-		DiscordId:    userMap["id"].(string),
+		DiscordID:    userMap["id"].(string),
 		Username:     userMap["username"].(string),
 		Email:        userMap["email"].(string),
 		Role:         "guest",
@@ -25,29 +27,33 @@ func (db *UserDB) Register(userMap bson.M) (models.User, error) {
 		Modified:     time.Now(),
 	}
 	result, err := db.collection.InsertOne(timeoutContext(), user)
-	user.Id = result.InsertedID.(primitive.ObjectID)
+	user.ID = result.InsertedID.(primitive.ObjectID)
 	return user, err
 }
 
-func (db *UserDB) FindById(id primitive.ObjectID) (models.User, error) {
+//FindByID from user db
+func (db *UserDB) FindByID(id primitive.ObjectID) (models.User, error) {
 	user := models.User{}
 	err := db.collection.FindOne(timeoutContext(), bson.M{"_id": id}).Decode(&user)
 	return user, err
 }
 
-func (db *UserDB) FindByDiscordId(id string) (models.User, error) {
+//FindByDiscordID from user db
+func (db *UserDB) FindByDiscordID(id string) (models.User, error) {
 	user := models.User{}
 	err := db.collection.FindOne(timeoutContext(), bson.M{"discord_id": id}).Decode(&user)
 	return user, err
 }
 
+//FindByEmail from user db
 func (db *UserDB) FindByEmail(email string) (models.User, error) {
 	user := models.User{}
 	err := db.collection.FindOne(timeoutContext(), bson.M{"email": email}).Decode(&user)
 	return user, err
 }
 
-func (db *UserDB) UpdateById(id primitive.ObjectID, setElement *bson.D) error {
+//UpdateByID from user db
+func (db *UserDB) UpdateByID(id primitive.ObjectID, setElement *bson.D) error {
 	if len(*setElement) > 0 {
 		*setElement = append(*setElement, bson.E{"modified", time.Now()})
 	}
@@ -58,6 +64,7 @@ func (db *UserDB) UpdateById(id primitive.ObjectID, setElement *bson.D) error {
 	return err
 }
 
+//GetLoLInfoList get all non guest user league of legends user information from user db
 func (db *UserDB) GetLoLInfoList() []bson.M {
 	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"},
 		{"lol_username", "$lol_username"},
@@ -76,6 +83,7 @@ func (db *UserDB) GetLoLInfoList() []bson.M {
 	return result
 }
 
+//GetUserList from get all non guest user
 func (db *UserDB) GetUserList() []primitive.ObjectID {
 	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"}}}}
 	matchStage := bson.D{{"$match", bson.D{{"role", bson.D{{"$ne", "guest"}}}}}}

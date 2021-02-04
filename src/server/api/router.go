@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//Initialize all routes on API
 func Initialize(router *gin.RouterGroup) {
 	router.Use(middleware.CORSMiddleware)
 	v1.Initialize(router)

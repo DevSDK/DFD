@@ -11,18 +11,18 @@ import (
 )
 
 func createCommonUserMap(user models.User) gin.H {
-	recent, err := database.Instance.DFDHistory.GetRecent(user.Id)
+	recent, err := database.Instance.DFDHistory.GetRecent(user.ID)
 	state := ""
 	if err == nil {
 		state = recent["state"].(string)
 	}
 	return gin.H{
-		"id":            user.Id.Hex(),
+		"id":            user.ID.Hex(),
 		"profile_image": user.ProfileImage.Hex(),
 		"email":         user.Email,
 		"state":         state,
 		"lol_name":      user.LolUsername,
-		"discord_id":    user.DiscordId,
+		"discord_id":    user.DiscordID,
 		"username":      user.Username,
 		"role":          user.Role,
 		"created":       user.Created,
@@ -30,6 +30,7 @@ func createCommonUserMap(user models.User) gin.H {
 	}
 }
 
+// GetUser is handler for endpoint GET /user/{id}
 // @Summary Get User Information
 // @Description Get user by user id
 // @Description Permission : **user.get**
@@ -48,7 +49,7 @@ func createCommonUserMap(user models.User) gin.H {
 // @Router /v1/user/{id} [get]
 func GetUser(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
-	user, err := database.Instance.User.FindById(id)
+	user, err := database.Instance.User.FindByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))
 		return
@@ -57,6 +58,7 @@ func GetUser(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 
+// GetMe is handler for endpoint GET /user
 // @Summary Get My User Information
 // @Description Get me
 // @Description Permission : **user.get**
@@ -77,6 +79,7 @@ func GetMe(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 
+// GetUserList is handler for endpoint GET /userlist
 // @Summary Get User List
 // @Description Get userlinst who is not guest.
 // @Description Permission : **user.get**
@@ -96,6 +99,7 @@ func GetUserList(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"user": result}))
 }
 
+// PatchUser is handler for endpoint PATCH /userlist
 // @Summary Edit user information
 // @Description edit userfield.
 // @Description Permission : **user.patch**
@@ -118,31 +122,32 @@ func PatchUser(c *gin.Context) {
 	utils.ApplySetElementStringSameTarget(setElement, bodyMap, "username")
 
 	if bodyMap["profile_image_id"] != nil {
-		imageIdString, ok := bodyMap["profile_image_id"].(string)
+		imageIDString, ok := bodyMap["profile_image_id"].(string)
 		if !ok {
 			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("image id is not string"))
 			return
 		}
-		imageId, _ := primitive.ObjectIDFromHex(imageIdString)
-		metaData, err := database.Instance.Image.GetMetdataById(imageId)
+		imageID, _ := primitive.ObjectIDFromHex(imageIDString)
+		metaData, err := database.Instance.Image.GetMetdataByID(imageID)
 		if err != nil {
 			c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found image"))
 			return
 		}
 		uploader := metaData["uploader"].(primitive.ObjectID)
-		if uploader.Hex() != user.Id.Hex() {
+		if uploader.Hex() != user.ID.Hex() {
 			c.JSON(http.StatusBadRequest, utils.CreateBadRequestJSONMessage("Image is not valid"))
 			return
 		}
-		*setElement = append(*setElement, bson.E{Key: "profile_image_id", Value: imageId})
+		*setElement = append(*setElement, bson.E{Key: "profile_image_id", Value: imageID})
 	}
-	if err := database.Instance.User.UpdateById(user.Id, setElement); err != nil {
+	if err := database.Instance.User.UpdateByID(user.ID, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))
 		return
 	}
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(nil))
 }
 
+// PatchUserLolName is handler for endpoint PATCH /user/lol
 // @Summary Patch LOL Information
 // @Description Update LOL user informations
 // @Description Permission : **user.patch**
@@ -187,7 +192,7 @@ func PatchUserLolName(c *gin.Context) {
 		return
 	}
 
-	if err := database.Instance.User.UpdateById(user.Id, setElement); err != nil {
+	if err := database.Instance.User.UpdateByID(user.ID, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("Cannot found user"))
 		return
 	}

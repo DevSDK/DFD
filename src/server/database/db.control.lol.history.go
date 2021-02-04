@@ -9,8 +9,11 @@ import (
 	"time"
 )
 
+//LOLHistoryDB is a structure for lol history data access
 type LOLHistoryDB struct{ BaseDB }
 
+//GetList get all game histories
+//TODO(devssh): This rquires pagenation
 func (db *LOLHistoryDB) GetList() []bson.M {
 	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"},
 		{"_id", 0},
@@ -32,6 +35,7 @@ func (db *LOLHistoryDB) GetList() []bson.M {
 	return result
 }
 
+//AddLolHistory add game history
 func (db *LOLHistoryDB) AddLolHistory(dataMap bson.M, win bool, timestamp int64, gameId string, queueId int64, participants []string) (primitive.ObjectID, error) {
 	game := models.LOLHistory{
 		Game:         dataMap,
@@ -39,13 +43,14 @@ func (db *LOLHistoryDB) AddLolHistory(dataMap bson.M, win bool, timestamp int64,
 		Timestamp:    time.Unix(timestamp, 0),
 		Participants: participants,
 		Created:      time.Now(),
-		QueueId:      queueId,
-		GameId:       gameId,
+		QueueID:      queueId,
+		GameID:       gameId,
 	}
 	res, err := db.collection.InsertOne(timeoutContext(), game)
 	return res.InsertedID.(primitive.ObjectID), err
 }
 
+//GetLolHistory by specific id
 func (db *LOLHistoryDB) GetLolHistory(id primitive.ObjectID) (models.LOLHistory, error) {
 	history := models.LOLHistory{}
 	err := db.collection.FindOne(timeoutContext(), bson.M{"_id": id}).Decode(&history)
@@ -53,6 +58,7 @@ func (db *LOLHistoryDB) GetLolHistory(id primitive.ObjectID) (models.LOLHistory,
 
 }
 
+//GetCountByDate returns statices data
 func (db *LOLHistoryDB) GetCountByDate() []bson.M {
 	winStage := bson.D{{"$project", bson.D{
 		{"queueid", "$queueid"},

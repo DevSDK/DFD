@@ -1,7 +1,6 @@
 package v1
 
 import (
-	_ "github.com/DevSDK/DFD/src/server/api/v1/docmodels"
 	"github.com/DevSDK/DFD/src/server/database"
 	"github.com/DevSDK/DFD/src/server/database/models"
 	"github.com/DevSDK/DFD/src/server/utils"
@@ -12,6 +11,7 @@ import (
 	"time"
 )
 
+// GetCurrentAnnounceList is handler for endpoint GET /announces/current
 // @Summary Get current announce list
 // @Description Get announce list greater then target-date from NOW sorted by creation time
 // @Description Permission : **announces.get**
@@ -31,6 +31,7 @@ func GetCurrentAnnounceList(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
 }
 
+// GetAllAnnounceList is handler for endpoint GET /announces/all
 // @Summary Get all announce list
 // @Description Get all announce list sorted by creation time
 // @Description Permission : **announces.get**
@@ -50,6 +51,7 @@ func GetAllAnnounceList(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
 }
 
+// GetAnnounceList is handler for endpoint GET /announces/user/{id}
 // @Summary Get announce list by user id
 // @Description Get announce list written by user
 // @Description Permission : **announces.get**
@@ -68,10 +70,11 @@ func GetAllAnnounceList(c *gin.Context) {
 func GetAnnounceList(c *gin.Context) {
 	idString := c.Param("id")
 	id, _ := primitive.ObjectIDFromHex(idString)
-	list, _ := database.Instance.Announce.GetListByAuthorId(id)
+	list, _ := database.Instance.Announce.GetListByAuthorID(id)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
 }
 
+// GetAnnounceListMe is handler for endpoint GET /announces/me
 // @Summary Get own announce list
 // @Description get announce list written by me
 // @Description Permission : **announces.get**
@@ -88,10 +91,11 @@ func GetAnnounceList(c *gin.Context) {
 // @Router /v1/announces/me [get]
 func GetAnnounceListMe(c *gin.Context) {
 	user := c.MustGet("user").(models.User)
-	list, _ := database.Instance.Announce.GetListByAuthorId(user.Id)
+	list, _ := database.Instance.Announce.GetListByAuthorID(user.ID)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"list": list}))
 }
 
+// PostAnnounce is handler for endpoint POST /announce
 // @Summary Write announce
 // @Description write announce
 // @Description Permission : **announce.post**
@@ -136,10 +140,11 @@ func PostAnnounce(c *gin.Context) {
 		bodyMap["description"] = ""
 	}
 
-	id, _ := database.Instance.Announce.AddAnnounce(user.Id, bodyMap)
+	id, _ := database.Instance.Announce.AddAnnounce(user.ID, bodyMap)
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"id": id}))
 }
 
+// PatchAnnounce is handler for endpoint PATCH /announce/{id}
 // @Summary Patch Announce
 // @Description Edit spcific announce written by me
 // @Description Permission : **announce.get**
@@ -178,7 +183,7 @@ func PatchAnnounce(c *gin.Context) {
 		}
 		utils.ApplySetElementStringSameTarget(setElement, bodyMap, "target_date")
 	}
-	if err := database.Instance.Announce.UpdateAnnounceById(id, user.Id, setElement); err != nil {
+	if err := database.Instance.Announce.UpdateAnnounceByID(id, user.ID, setElement); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found announce"))
 		return
 	}
@@ -186,6 +191,7 @@ func PatchAnnounce(c *gin.Context) {
 
 }
 
+// GetAnnounce is handler for endpoint GET /announce/{id}
 // @Summary Get announce
 // @Description Get specific announce by announce id
 // @Description Permission : **announce.get**
@@ -203,7 +209,7 @@ func PatchAnnounce(c *gin.Context) {
 // @Router /v1/announce/{id} [get]
 func GetAnnounce(c *gin.Context) {
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
-	res, err := database.Instance.Announce.GetAnnounceById(id)
+	res, err := database.Instance.Announce.GetAnnounceByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found announce"))
 		return
@@ -211,6 +217,7 @@ func GetAnnounce(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"announce": res}))
 }
 
+// DelAnnounce is handler for endpoint DELETE /announce/{id}
 // @Summary Delete announce
 // @Description Delete announce by announce id
 // @Description Permission : **announce.delete**
@@ -230,7 +237,7 @@ func DelAnnounce(c *gin.Context) {
 
 	id, _ := primitive.ObjectIDFromHex(c.Param("id"))
 	user := c.MustGet("user").(models.User)
-	if err := database.Instance.Announce.DeleteAnnounceById(id, user.Id); err != nil {
+	if err := database.Instance.Announce.DeleteAnnounceByID(id, user.ID); err != nil {
 		c.JSON(http.StatusNotFound, utils.CreateNotFoundJSONMessage("cannot found announce"))
 		return
 	}

@@ -138,7 +138,7 @@ definitions:
     type: object
   models.Announce:
     properties:
-      authorId:
+      authorID:
         example: 5c06bc289b9bdd2381263063
         type: string
       created:
@@ -197,7 +197,7 @@ host: devsdk.net/api/dfd
 info:
   contact:
     name: Seokho Song
-    url: http://github.com/devsdkGIN_MODE
+    url: http://github.com/devsdk
   description: |-
     # This is a DFD server
     Most of api endpoints aim to restful.
@@ -1205,7 +1205,6 @@ paths:
             $ref: '#/definitions/docmodels.ResponseInternalServerError'
       security:
       - ApiKeyAuth: []
-      summary: Create state
       tags:
       - api/v1/state
   /v1/states:

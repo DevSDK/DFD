@@ -8,6 +8,7 @@ import (
 	"net/http"
 )
 
+// PostAppicationToken is handler for endpoint POST /application/token
 // @Summary Create new application token
 // @Description 1st party application token.
 // @Description Permission : **admin.token.create**
@@ -27,6 +28,7 @@ func PostAppicationToken(c *gin.Context) {
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"token": token.Hex()}))
 }
 
+// PatchRiotAccessToken is handler for endpoint PATCH /application/riot/access
 // @Summary Patch Riot Token
 // @Description Riot token updator (This api only available on "Riot development token". If I get application token, This endpoint will be deleted)
 // @Description Permission : **admin.token.create**

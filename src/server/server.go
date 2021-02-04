@@ -1,7 +1,6 @@
 package server
 
 import (
-	_ "github.com/DevSDK/DFD/docs/v1"
 	"github.com/DevSDK/DFD/src/server/api"
 	"github.com/DevSDK/DFD/src/server/auth"
 	"github.com/DevSDK/DFD/src/server/middleware"
@@ -27,6 +26,7 @@ func initialize() *gin.Engine {
 	return engine
 }
 
+//RunServer initiate the server
 func RunServer() {
 	engine := initialize()
 	SERVER_PORT := "18020"
