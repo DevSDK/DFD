@@ -62,7 +62,6 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, u
 			log.Print(respMap)
 			return
 		}
-		log.Print(respMap)
 		var participateID int
 		var win bool
 		names := []string{}
@@ -84,7 +83,22 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, u
 				win = stats["win"].(bool)
 			}
 		}
+
+		timeString, err := database.Instance.Redis.Get("UpdateTimestamp")
 		timestamp := int64(respMap["gameCreation"].(float64))
+		t, err := time.Parse(time.RFC3339, timeString)
+		if err != nil {
+			log.Print("/v1/lol/history/updater")
+			log.Print("Time format is not RFC3339")
+			log.Print(timeString)
+			return
+		}
+		loc, _ := time.LoadLocation("Asia/Seoul")
+		timeWithLocation := t.In(loc)
+		if int64(timeWithLocation.UnixNano()/int64(time.Millisecond)) < int64(timestamp) {
+			database.Instance.Redis.Set("UpdateTimestamp", time.Unix((timestamp+100)/int64(1000)+1, 0).Format(time.RFC3339))
+		}
+
 		mutex.Lock()
 		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameID, queueID, names)
 		(*results) = append((*results), id)
@@ -130,6 +144,7 @@ func PostLolHistoryUpdate(c *gin.Context) {
 	}
 
 	t, err := time.Parse(time.RFC3339, timeString)
+	timeWithLocation := t.In(loc)
 	if err != nil {
 		log.Print("/v1/lol/history/updater")
 		log.Print("Time format is not RFC3339")
@@ -137,7 +152,6 @@ func PostLolHistoryUpdate(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
 		return
 	}
-	database.Instance.Redis.Set("UpdateTimestamp", time.Now().In(loc).Format(time.RFC3339))
 
 	users := database.Instance.User.GetLoLInfoList()
 	userExistsMap := map[string]bool{}
@@ -151,17 +165,19 @@ func PostLolHistoryUpdate(c *gin.Context) {
 		}
 		wg.Add(1)
 		userExistsMap[user["lol_account_id"].(string)] = true
-		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), t.UnixNano()/int64(time.Millisecond))
+		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), timeWithLocation.UnixNano()/int64(time.Millisecond))
 
 	}
 	wg.Wait()
 	wg = sync.WaitGroup{}
 	mutex = sync.Mutex{}
 	results := []primitive.ObjectID{}
+
 	for k, v := range countMap {
 		if v >= 3 {
 			wg.Add(1)
 			go requestAndStoreToDB(&mutex, &wg, k, userExistsMap, &results)
+
 		}
 	}
 	wg.Wait()
