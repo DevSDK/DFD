@@ -64,7 +64,8 @@ func (db *UserDB) GetLoLInfoList() []bson.M {
 		{"lol_account_id", "$lol_account_id"},
 		{"lol_puu_id", "$lol_puu_id"},
 		{"lol_id", "$lol_id"}}}}
-	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{aggregateStage})
+	matchStage := bson.D{{"$match", bson.D{{"role", bson.D{{"$ne", "guest"}}}}}}
+	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{matchStage, aggregateStage})
 	if err != nil {
 		log.Print(err.Error())
 	}
@@ -78,7 +79,7 @@ func (db *UserDB) GetLoLInfoList() []bson.M {
 func (db *UserDB) GetUserList() []primitive.ObjectID {
 	aggregateStage := bson.D{{"$project", bson.D{{"id", "$_id"}}}}
 	matchStage := bson.D{{"$match", bson.D{{"role", bson.D{{"$ne", "guest"}}}}}}
-	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{aggregateStage, matchStage})
+	cursor, err := db.collection.Aggregate(timeoutContext(), mongo.Pipeline{matchStage, aggregateStage})
 	resultFromDB := []bson.M{}
 	result := []primitive.ObjectID{}
 	if err != nil {

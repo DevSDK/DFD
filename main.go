@@ -36,7 +36,7 @@ import (
 // @description Login is working with discord Oauth2.
 // @description After login, the access and refresh token stored in Cookie.
 // @description You should get from the tokens via /token endpoint.
-// @description However, all request takes access token in **Authorization** header for security.
+// @description However, all requests take a access token in **Authorization** header for security.
 // @description The access token is JWT statless token.
 // @description Refresh token is stored and used cookie.
 // @contact.name Seokho Song
