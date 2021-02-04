@@ -1110,6 +1110,57 @@ paths:
       summary: Get lol history
       tags:
       - api/v1/lol/history
+  /v1/lol/history/migration:
+    post:
+      consumes:
+      - application/json
+      description: |-
+        migration and store to DB.
+        **Application Token** is required.
+      parameters:
+      - description: application access token
+        in: header
+        name: X-Dfd-App-Auth
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: success
+          schema:
+            allOf:
+            - $ref: '#/definitions/docmodels.ResponseSuccess'
+            - properties:
+                results:
+                  items:
+                    type: string
+                  type: array
+              type: object
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/docmodels.ResponseBadRequest'
+        "401":
+          description: Unauthorized Request. If token is expired, **token_expired**
+            filed must be set true
+          schema:
+            $ref: '#/definitions/docmodels.ResponseUnauthorized'
+        "403":
+          description: You don't have permission
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "404":
+          description: Cannt found user
+          schema:
+            $ref: '#/definitions/docmodels.ResponseNotFound'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/docmodels.ResponseInternalServerError'
+      summary: Migration lol history from 2021-01-01.
+      tags:
+      - api/v1/lol/history
   /v1/lol/history/updater:
     post:
       consumes:

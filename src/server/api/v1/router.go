@@ -35,6 +35,7 @@ func Initialize(router *gin.RouterGroup) {
 	v1router.POST("/application/token", middleware.AppAndJWTAuthMiddleware(false, "admin.token.create"), PostAppicationToken)
 	v1router.PATCH("/application/riot/access", middleware.AppAndJWTAuthMiddleware(false, "admin.token.create"), middleware.JSONBodyParseMiddleware, PatchRiotAccessToken)
 	v1router.POST("/lol/history/updater", middleware.VerifyApplicationTokenMiddleware, PostLolHistoryUpdate)
+	v1router.POST("/lol/history/migration", middleware.VerifyApplicationTokenMiddleware, PostMigrationHistoryFrom)
 	v1router.GET("/lol/histories", GetLolHistoryList)
 	v1router.GET("/lol/datelogs", GetLolHistoryPerDate)
 	v1router.GET("/lol/history/:id", GetLolHistory)

@@ -24,24 +24,32 @@ func parseMatchesToIDArray(bodyMap bson.M) []string {
 }
 
 func increaseMatchMap(mutex *sync.Mutex, wg *sync.WaitGroup, countMap *map[string]int32, accountID string, timestamp int64) {
-	for i := 1; i <= 3600; i++ {
+	index := 0
+	retryCount := 1
+	for {
 		defer (*wg).Done()
 		respMap, respCode := utils.RequestToRiotServer("/lol/match/v4/matchlists/by-account/"+accountID,
-			bson.M{"beginTime": strconv.FormatInt(timestamp, 10)})
+			bson.M{"beginTime": strconv.FormatInt(timestamp, 10), "beginIndex" : strconv.Itoa(index)})
 		if respCode == 429 {
 			log.Print("RateLimit exceded")
-			log.Print("increaseMatchMap() Retry: " + strconv.Itoa(i))
+			log.Print("increaseMatchMap() Retry: " + strconv.Itoa(retryCount))
 			time.Sleep(3 * time.Second)
+			retryCount++
 			continue
 		} else if respCode != 200 {
 			log.Print("RIOT SERVER RESPONSE AS " + strconv.Itoa(respCode))
 			return
 		}
 		array := parseMatchesToIDArray(respMap)
+
 		for _, id := range array {
 			(*mutex).Lock()
 			(*countMap)[id]++
 			(*mutex).Unlock()
+		}
+		if len(array) >= 100 {
+			index += 100
+			continue
 		}
 		return
 	}
@@ -83,21 +91,7 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, u
 				win = stats["win"].(bool)
 			}
 		}
-
-		timeString, err := database.Instance.Redis.Get("UpdateTimestamp")
 		timestamp := int64(respMap["gameCreation"].(float64))
-		t, err := time.Parse(time.RFC3339, timeString)
-		if err != nil {
-			log.Print("/v1/lol/history/updater")
-			log.Print("Time format is not RFC3339")
-			log.Print(timeString)
-			return
-		}
-		loc, _ := time.LoadLocation("Asia/Seoul")
-		timeWithLocation := t.In(loc)
-		if int64(timeWithLocation.UnixNano()/int64(time.Millisecond)) < int64(timestamp) {
-			database.Instance.Redis.Set("UpdateTimestamp", time.Unix((timestamp+100)/int64(1000)+1, 0).Format(time.RFC3339))
-		}
 
 		mutex.Lock()
 		id, _ := database.Instance.LOLHistory.AddLolHistory(respMap, win, timestamp/int64(1000), gameID, queueID, names)
@@ -105,6 +99,85 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, u
 		mutex.Unlock()
 		return
 	}
+}
+
+func processGames(timestamp int64) [] primitive.ObjectID {
+	users := database.Instance.User.GetLoLInfoList()
+	userExistsMap := map[string]bool{}
+	countMap := map[string]int32{}
+	wg := sync.WaitGroup{}
+	mutex := sync.Mutex{}
+
+	for _, user := range users {
+		if user["lol_account_id"].(string) == "" {
+			continue
+		}
+		wg.Add(1)
+		userExistsMap[user["lol_account_id"].(string)] = true
+		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), timestamp)
+
+	}
+	wg.Wait()
+	wg = sync.WaitGroup{}
+	mutex = sync.Mutex{}
+	results := []primitive.ObjectID{}
+
+	for k, v := range countMap {
+		if v >= 3 {
+			if !database.Instance.LOLHistory.CheckGameExistByGameID(k) {
+				wg.Add(1)
+				go requestAndStoreToDB(&mutex, &wg, k, userExistsMap, &results)
+			}
+		}
+	}
+	wg.Wait()
+	return results
+}
+
+// PostMigrationHistoryFrom is handler for endpoint POST /lol/history/migration
+// @Summary Migration lol history from 2021-01-01.
+// @Description migration and store to DB.
+// @Description **Application Token** is required.
+// @Accept  json
+// @Produce  json
+// @Param X-Dfd-App-Auth header string true "application access token"
+// @Success 200 {object} docmodels.ResponseSuccess{results=[]primitive.ObjectID} "success"
+// @Failure 500 {object} docmodels.ResponseInternalServerError "Internal Server Error"
+// @Failure 404 {object} docmodels.ResponseNotFound "Cannt found user"
+// @Failure 403 {object} docmodels.ResponseNotFound "You don't have permission"
+// @Failure 401 {object} docmodels.ResponseUnauthorized "Unauthorized Request. If token is expired, **token_expired** filed must be set true"
+// @Failure 400 {object} docmodels.ResponseBadRequest "Bad request"
+// @tags api/v1/lol/history
+// @Router /v1/lol/history/migration [post]
+func PostMigrationHistoryFrom(c *gin.Context) {
+	response, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
+	if respCode == 403 {
+		log.Print("RIOT API Token is invalid")
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
+		return
+	}
+	if respCode != 200 {
+		log.Print("Riot response:")
+		log.Print(response)
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
+		return
+	}
+
+	timeString := "2021-01-01T00:00:00+09:00"
+	loc, _ := time.LoadLocation("Asia/Seoul")
+	t, err := time.Parse(time.RFC3339, timeString)
+	timeWithLocation := t.In(loc)
+	if err != nil {
+		log.Print("/v1/lol/history/updater")
+		log.Print("Time format is not RFC3339")
+		log.Print(timeString)
+		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
+		return
+	}
+
+	results := processGames(timeWithLocation.UnixNano()/int64(time.Millisecond))
+	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"results": results}))
+	return
 }
 
 // PostLolHistoryUpdate is handler for endpoint POST /lol/history/updater
@@ -124,7 +197,6 @@ func requestAndStoreToDB(mutex *sync.Mutex, wg *sync.WaitGroup, gameID string, u
 // @Router /v1/lol/history/updater [post]
 func PostLolHistoryUpdate(c *gin.Context) {
 	response, respCode := utils.RequestToRiotServer("/lol/status/v4/platform-data", nil)
-
 	if respCode == 403 {
 		log.Print("RIOT API Token is invalid")
 		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
@@ -137,52 +209,11 @@ func PostLolHistoryUpdate(c *gin.Context) {
 		return
 	}
 
-	timeString, err := database.Instance.Redis.Get("UpdateTimestamp")
+
 	loc, _ := time.LoadLocation("Asia/Seoul")
-	if err != nil {
-		timeString = time.Now().In(loc).Format(time.RFC3339)
-	}
-
-	t, err := time.Parse(time.RFC3339, timeString)
-	timeWithLocation := t.In(loc)
-	if err != nil {
-		log.Print("/v1/lol/history/updater")
-		log.Print("Time format is not RFC3339")
-		log.Print(timeString)
-		c.JSON(http.StatusInternalServerError, utils.CreateInternalServerErrorJSONMessage())
-		return
-	}
-
-	users := database.Instance.User.GetLoLInfoList()
-	userExistsMap := map[string]bool{}
-	countMap := map[string]int32{}
-	wg := sync.WaitGroup{}
-	mutex := sync.Mutex{}
-
-	for _, user := range users {
-		if user["lol_account_id"].(string) == "" {
-			continue
-		}
-		wg.Add(1)
-		userExistsMap[user["lol_account_id"].(string)] = true
-		go increaseMatchMap(&mutex, &wg, &countMap, user["lol_account_id"].(string), timeWithLocation.UnixNano()/int64(time.Millisecond))
-
-	}
-	wg.Wait()
-	wg = sync.WaitGroup{}
-	mutex = sync.Mutex{}
-	results := []primitive.ObjectID{}
-
-	for k, v := range countMap {
-		if v >= 3 {
-			wg.Add(1)
-			go requestAndStoreToDB(&mutex, &wg, k, userExistsMap, &results)
-
-		}
-	}
-	wg.Wait()
+	t := time.Now().In(loc).Add(-time.Hour*3)
+	results := processGames(t.UnixNano()/int64(time.Millisecond))
 	c.JSON(http.StatusOK, utils.CreateSuccessJSONMessage(gin.H{"results": results}))
-	return
 }
 
 // GetLolHistoryList is handler for endpoint GET /lol/histories

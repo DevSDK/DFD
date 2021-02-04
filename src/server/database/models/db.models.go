@@ -40,7 +40,7 @@ type Role struct {
 //LOLHistory is model structure for lol history
 type LOLHistory struct {
 	ID           primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	GameID       string             `bson:gameid`
+	GameID       string             `bson:"gameid,unique"`
 	Game         bson.M             `bson:game`
 	Win          bool               `bson:win`
 	Timestamp    time.Time          `bson:timestamp`

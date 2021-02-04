@@ -35,16 +35,24 @@ func (db *LOLHistoryDB) GetList() []bson.M {
 	return result
 }
 
+//CheckGameExistByGameID return existence of game
+func (db *LOLHistoryDB) CheckGameExistByGameID(gameID string) bool{
+	if db.collection.FindOne(timeoutContext(), bson.M{"gameid": gameID}).Err() != nil {
+		return false
+	}
+	return true
+}
+
 //AddLolHistory add game history
-func (db *LOLHistoryDB) AddLolHistory(dataMap bson.M, win bool, timestamp int64, gameId string, queueId int64, participants []string) (primitive.ObjectID, error) {
+func (db *LOLHistoryDB) AddLolHistory(dataMap bson.M, win bool, timestamp int64, gameID string, queueID int64, participants []string) (primitive.ObjectID, error) {
 	game := models.LOLHistory{
 		Game:         dataMap,
 		Win:          win,
 		Timestamp:    time.Unix(timestamp, 0),
 		Participants: participants,
 		Created:      time.Now(),
-		QueueID:      queueId,
-		GameID:       gameId,
+		QueueID:      queueID,
+		GameID:       gameID,
 	}
 	res, err := db.collection.InsertOne(timeoutContext(), game)
 	return res.InsertedID.(primitive.ObjectID), err

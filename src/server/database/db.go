@@ -86,6 +86,14 @@ func initializeMongoDB() error {
 			Options: options.Index().SetUnique(true),
 		},
 	)
+
+	Instance.LOLHistory.collection.Indexes().CreateOne(
+		timeoutContext(),
+		mongo.IndexModel{
+			Keys:    bson.D{{Key: "gameid", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+	)
 	return nil
 }
 

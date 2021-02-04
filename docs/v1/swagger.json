@@ -1291,6 +1291,83 @@
                 }
             }
         },
+        "/v1/lol/history/migration": {
+            "post": {
+                "description": "migration and store to DB.\n**Application Token** is required.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "api/v1/lol/history"
+                ],
+                "summary": "Migration lol history from 2021-01-01.",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "application access token",
+                        "name": "X-Dfd-App-Auth",
+                        "in": "header",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "success",
+                        "schema": {
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/docmodels.ResponseSuccess"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "results": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    "400": {
+                        "description": "Bad request",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseBadRequest"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized Request. If token is expired, **token_expired** filed must be set true",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseUnauthorized"
+                        }
+                    },
+                    "403": {
+                        "description": "You don't have permission",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "404": {
+                        "description": "Cannt found user",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseNotFound"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/docmodels.ResponseInternalServerError"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/lol/history/updater": {
             "post": {
                 "description": "Find game after the timestamp and store to DB\n**Application Token** is required.",
