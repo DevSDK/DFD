@@ -13,14 +13,18 @@ import (
 func createCommonUserMap(user models.User) gin.H {
 	recent, err := database.Instance.DFDHistory.GetRecent(user.ID)
 	state := ""
+	stateCreated := primitive.DateTime(0)
+
 	if err == nil {
 		state = recent["state"].(string)
+		stateCreated = recent["created"].(primitive.DateTime)
 	}
 	return gin.H{
 		"id":            user.ID.Hex(),
 		"profile_image": user.ProfileImage.Hex(),
 		"email":         user.Email,
 		"state":         state,
+		"state_created":    stateCreated,
 		"lol_name":      user.LolUsername,
 		"discord_id":    user.DiscordID,
 		"username":      user.Username,
