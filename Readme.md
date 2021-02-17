@@ -4,11 +4,14 @@
 [![Docker Image Version (latest by date)](https://img.shields.io/docker/v/devsdk/dfd-server)](https://hub.docker.com/repository/docker/devsdk/dfd-server)
 [![Go Report Card](https://goreportcard.com/badge/github.com/devsdk/DFD)](https://goreportcard.com/report/github.com/devsdk/DFD)
 
-React front-end:
+Front-End:
 
 
 [https://devsdk.net/dfd](https://devsdk.net/dfd)
 
+Repository : [https://github.com/DevSDK/DFD-WEB](https://github.com/DevSDK/DFD-WEB)
+
+Stacks : React, Redux, React-Bootstrap, ApexChart, TypeScript, AXIOS
 
   
 This web service provide League of Legends histories and statistics or crew status for our small group called 'fv".
